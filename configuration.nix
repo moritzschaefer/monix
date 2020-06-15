@@ -2,13 +2,17 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, ... }:
+{ pkgs, options, ... }:
 
 {
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
+      ./homeassistant/main.nix
     ];
+
+
+  nixpkgs.overlays = [ (import ./overlays/python-packages.nix) ];
   boot.loader.grub.enable = false;
   boot.loader.raspberryPi.enable = true;
   boot.loader.raspberryPi.version = 4;
@@ -36,7 +40,7 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-    wget vim emacs tmux curl htop git
+    wget vim emacs tmux curl htop git skopeo python3.pydeconz
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -75,9 +79,10 @@
   users.users.moritz = {
     isNormalUser = true;
     home = "/home/moritz";
-    extraGroups = [ "wheel" "networkmanager" ];
+    extraGroups = [ "wheel" "networkmanager" "dialout" "docker" ];
     openssh.authorizedKeys.keys = [ "" ];
   };
+  virtualisation.docker.enable = true;
 
   # List services that you want to enable:
 
@@ -119,11 +124,53 @@
   #   extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
   # };
 
+  services.home-assistant = {
+    enable = true;
+    port = 8123;
+    openFirewall = true;
+    applyDefaultConfig = false;
+    package = pkgs.home-assistant.override {
+      extraPackages = ps: with ps; [ colorlog ];
+    };
+    
+
+    config = {
+      homeassistant = {
+        name = "Home";
+        time_zone = "Europe/Zurich"; 
+        latitude = 1;
+        longitude = 1;
+        elevation = 1;
+        unit_system = "metric";
+        temperature_unit = "C";
+      };
+      # Enable the frontend
+      frontend = {};
+      http = {};
+      config = {};
+      discovery = {
+        ignore = [ ];
+      };
+      logger = {
+        default = "info";
+        logs = {
+          pydeconz = "debug";
+          "homeassistant.components.deconz" = "debug";
+        };
+      };
+    };
+  };
+  # https://nixos.wiki/wiki/Overlays
+  # Prepend default nixPath values.
+  nix.nixPath = options.nix.nixPath.default ++ 
+    # Append our nixpkgs-overlays.
+    [ "nixpkgs-overlays=/etc/nixos/overlays-compat/" ]
+  ;
+
   # This value determines the NixOS release with which your system is to be
   # compatible, in order to avoid breaking some software such as database
   # servers. You should change this only after NixOS release notes say you
   # should.
   system.stateVersion = "20.03"; # Did you read the comment?
-
 }
 
