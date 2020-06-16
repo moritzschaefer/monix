@@ -131,6 +131,9 @@
     applyDefaultConfig = false;
     package = pkgs.home-assistant.override {
       extraPackages = ps: with ps; [ colorlog ];
+      packageOverrides = self: super: {
+        pydeconz = pkgs.pythonPackages.pydeconz;
+      };
     };
     
 
