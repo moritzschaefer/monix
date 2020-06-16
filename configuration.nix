@@ -8,7 +8,7 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
-      ./homeassistant/main.nix
+      # ./homeassistant/main.nix
     ];
 
 
@@ -40,7 +40,7 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-    wget vim emacs tmux curl htop git skopeo python3.pydeconz
+    wget vim emacs tmux curl htop git 
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -163,6 +163,9 @@
       };
     };
   };
+  # TODO add docker image for deconz
+
+
   # https://nixos.wiki/wiki/Overlays
   # Prepend default nixPath values.
   nix.nixPath = options.nix.nixPath.default ++ 
