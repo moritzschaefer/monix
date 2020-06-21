@@ -1,0 +1,72 @@
+
+ami6_moritz:
+  hide_if_away: false
+  icon:
+  mac: 50:8F:4C:E8:1D:A1
+  name: AMI6-Moritz
+  picture:
+  track: true
+
+chromecast:
+  hide_if_away: false
+  icon:
+  mac: 6C:AD:F8:6B:46:E8
+  name: Chromecast
+  picture:
+  track: false
+
+derberechener:
+  hide_if_away: false
+  icon:
+  mac: 0C:4D:E9:D3:B3:02
+  name: DerBerechener
+  picture:
+  track: false
+
+derberechener_2:
+  hide_if_away: false
+  icon:
+  mac: 88:63:DF:AD:92:35
+  name: DerBerechener
+  picture:
+  track: false
+
+elcomputador:
+  hide_if_away: false
+  icon:
+  mac: 40:8D:5C:1E:67:94
+  name: ELcomputador
+  picture:
+  track: false
+
+brw0071cc038f12:
+  hide_if_away: false
+  icon:
+  mac: 00:71:CC:03:8F:12
+  name: BRW0071CC038F12
+  picture:
+  track: false
+
+elcomputador_2:
+  hide_if_away: false
+  icon:
+  mac: 40:8D:5C:1E:67:96
+  name: ELcomputador
+  picture:
+  track: false
+
+desktop_m8p4pdl:
+  hide_if_away: false
+  icon:
+  mac: 60:6C:66:03:C0:6E
+  name: DESKTOP-M8P4PDL
+  picture:
+  track: false
+
+desktop_6f9dqq1:
+  hide_if_away: false
+  icon:
+  mac: 9C:B6:D0:FA:DD:F7
+  name: DESKTOP-6F9DQQ1
+  picture:
+  track: false

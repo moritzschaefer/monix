@@ -1,0 +1,63 @@
+close_window:
+  alias: Close Window
+  description: Closes window
+  sequence:
+  - service: input_boolean.turn_off
+    data:
+      entity_id: input_boolean.window
+  - service: switch.turn_on
+    data:
+      entity_id: switch.window_pin_2
+  - service: switch.turn_off
+    data:
+      entity_id: switch.window_pin_1
+  - service: switch.turn_on
+    data:
+      entity_id: switch.window_motor_enabled
+  - delay: 2
+  - service: switch.turn_off
+    data:
+      entity_id: switch.window_pin_2
+  - service: switch.turn_off
+    data:
+      entity_id: switch.window_motor_enabled
+open_window:
+  alias: Open Window
+  description: Opens window
+  sequence:
+  - service: input_boolean.turn_on
+    data:
+      entity_id: input_boolean.window
+  - service: switch.turn_on
+    data:
+      entity_id: switch.window_pin_1
+  - service: switch.turn_off
+    data:
+      entity_id: switch.window_pin_2
+  - service: switch.turn_on
+    data:
+      entity_id: switch.window_motor_enabled
+  - delay: 2
+  - service: switch.turn_off
+    data:
+      entity_id: switch.window_pin_1
+  - service: switch.turn_off
+    data:
+      entity_id: switch.window_motor_enabled
+
+switch_on_monitor:
+  alias: Monitor On
+  description: Opens window
+  sequence:
+  - service: input_boolean.turn_on
+    data:
+      entity_id: input_boolean.monitor
+  - service: shell_command.switch_on_monitor
+switch_off_monitor:
+  alias: Monitor off
+  description: Opens window
+  sequence:
+  - service: input_boolean.turn_off
+    data:
+      entity_id: input_boolean.monitor
+  - service: shell_command.switch_off_monitor

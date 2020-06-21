@@ -2,14 +2,33 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ pkgs, options, ... }:
+{ config, pkgs, options, ... }:
 
 {
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
-      # ./homeassistant/main.nix
+      ./homeassistant/main.nix  # deconz docker image (for now)
     ];
+  # nixpkgs.config.packageOverrides = super: {
+  # python3 = super.python3.override {
+    # # Careful, we're using a different self and super here!
+    # packageOverrides = self: super: {
+      # pydeconz = super.buildPythonPackage rec {
+        # pname = "pydeconz";
+        # version = "71";
+        # # name = "${pname}-${version}";
+        # propagatedBuildInputs = [ super.pythonPackages.aiohttp ];
+        # doCheck = false;
+        # src = super.fetchPypi {
+          # inherit pname version;
+          # sha256 = "cd7436779296ab259c1e3e02d639a5d6aa7eca300afb03bb5553a787b27e324c";
+        # };
+      # };
+    # };
+  # };
+  # };
+
 
 
   nixpkgs.overlays = [ (import ./overlays/python-packages.nix) ];
@@ -39,8 +58,26 @@
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
-  environment.systemPackages = with pkgs; [
-    wget vim emacs tmux curl htop git 
+  environment.variables = { EDITOR = "vim"; };
+  environment.systemPackages = with pkgs; let myneovim = (neovim.override {
+      vimAlias = true;
+      configure = {
+        packages.myPlugins = with pkgs.vimPlugins; {
+          start = [ spacevim ]; 
+          opt = [];
+        };
+        customRC = ''
+          " your custom vimrc
+          set nocompatible
+          set backspace=indent,eol,start
+          "
+        '';
+      };
+    }
+  ); 
+  mypython =  python3.withPackages (python-packages: [ python-packages.rpi-gpio ]);
+  in [
+    wget emacs tmux curl htop git myneovim mypython
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -79,7 +116,7 @@
   users.users.moritz = {
     isNormalUser = true;
     home = "/home/moritz";
-    extraGroups = [ "wheel" "networkmanager" "dialout" "docker" ];
+    extraGroups = [ "wheel" "networkmanager" "dialout" "docker" "gpio" ];
     openssh.authorizedKeys.keys = [ "" ];
   };
   virtualisation.docker.enable = true;
@@ -118,26 +155,378 @@
     #desktopManager.gnome3.enable = true;
   #};
 
-  # Define a user account. Don't forget to set a password with ‘passwd’.
-  # users.users.jane = {
-  #   isNormalUser = true;
-  #   extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
-  # };
+  # this is very liberal (222 should be 220 and 666 should be 660), but I don't want any struggle with access because of groups..
+  services.udev.extraRules = let
+    gpio_chip_udev_script = pkgs.writeShellScript "gpio_chip_udev_script" "chown root:gpio /sys/class/gpio/export /sys/class/gpio/unexport ; chmod 222 /sys/class/gpio/export /sys/class/gpio/unexport";
+    gpio_udev_script = pkgs.writeShellScript "gpio_udev_script" "chown root:gpio /sys%p/active_low /sys%p/direction /sys%p/edge /sys%p/value ; chmod 666 /sys%p/active_low /sys%p/direction /sys%p/edge /sys%p/value";
+  in ''
+    SUBSYSTEM=="bcm2835-gpiomem", KERNEL=="gpiomem", GROUP="gpio", MODE="0666"
+    SUBSYSTEM=="gpio", KERNEL=="gpiochip*", ACTION=="add", RUN+="${gpio_chip_udev_script}"
+    SUBSYSTEM=="gpio", KERNEL=="gpio*", ACTION=="add", RUN+="${gpio_udev_script}"
+  '';
 
   services.home-assistant = {
+    configWritable = true;
     enable = true;
     port = 8123;
     openFirewall = true;
     applyDefaultConfig = false;
     package = pkgs.home-assistant.override {
-      extraPackages = ps: with ps; [ colorlog ];
+      extraPackages = ps: with ps; [ colorlog rpi-gpio];
       packageOverrides = self: super: {
-        pydeconz = pkgs.pythonPackages.pydeconz;
+        pydeconz = pkgs.python3Packages.pydeconz;
+        rpi-gpio = pkgs.python3Packages.rpi-gpio;
       };
     };
-    
 
     config = {
+      # device_tracker = [
+      #   {
+      #     platform = "fritz";
+      #     host = "192.168.178.1";
+      #     username = "admin";
+      #     password = "HaveABreak!";
+      #     interval_seconds = "8";
+      #     consider_home = "180";
+      #     new_device_defaults = {
+      #       track_new_devices = "false";
+      #       hide_if_away = "false";
+      #     };
+      #   }
+      # ];
+      input_boolean = {
+        window = {
+          name = "Controls Window";
+          initial = "off";
+        };
+        monitor = {
+          name = "Controls Monitor";
+          initial = "off";
+        };
+      };
+      script = {
+        close_window = {
+          alias = "Close Window";
+          description = "Closes window";
+          sequence = [
+            {
+              service = "input_boolean.turn_off";
+              data = {
+                entity_id = "input_boolean.window";
+              };
+            }
+            {
+              service = "switch.turn_on";
+              data = {
+                entity_id = "switch.window_pin_2";
+              };
+            }
+            {
+              service = "switch.turn_off";
+              data = {
+                entity_id = "switch.window_pin_1";
+              };
+            }
+            {
+              service = "switch.turn_on";
+              data = {
+                entity_id = "switch.window_motor_enabled";
+              };
+            }
+            {
+              delay = 2;
+            }
+            {
+              service = "switch.turn_off";
+              data = {
+                entity_id = "switch.window_pin_2";
+              };
+            }
+            {
+              service = "switch.turn_off";
+              data = {
+                entity_id = "switch.window_motor_enabled";
+              };
+            }
+          ];
+        };
+        open_window = {
+          alias = "Open Window";
+          description = "Opens window";
+          sequence = [
+            {
+              service = "input_boolean.turn_on";
+              data = {
+                entity_id = "input_boolean.window";
+              };
+            }
+            {
+              service = "switch.turn_on";
+              data = {
+                entity_id = "switch.window_pin_1";
+              };
+            }
+            {
+              service = "switch.turn_off";
+              data = {
+                entity_id = "switch.window_pin_2";
+              };
+            }
+            {
+              service = "switch.turn_on";
+              data = {
+                entity_id = "switch.window_motor_enabled";
+              };
+            }
+            {
+              delay = 2;
+            }
+            {
+              service = "switch.turn_off";
+              data = {
+                entity_id = "switch.window_pin_1";
+              };
+            }
+            {
+              service = "switch.turn_off";
+              data = {
+                entity_id = "switch.window_motor_enabled";
+              };
+            }
+          ];
+        };
+        switch_on_monitor = {
+          alias = "Monitor On";
+          description = "Opens window";
+          sequence = [
+            {
+              service = "input_boolean.turn_on";
+              data = {
+                entity_id = "input_boolean.monitor";
+              };
+            }
+            {
+              service = "shell_command.switch_on_monitor";
+            }
+          ];
+        };
+        switch_off_monitor = {
+          alias = "Monitor off";
+          description = "Opens window";
+          sequence = [
+            {
+              service = "input_boolean.turn_off";
+              data = {
+                entity_id = "input_boolean.monitor";
+              };
+            }
+            {
+              service = "shell_command.switch_off_monitor";
+            }
+          ];
+        };
+      };
+      automation = [
+        {
+          id =  "open_window_test";
+          alias =  "Open the window now for test";
+          trigger =  [
+            {
+              at =  "16:17";
+              platform =  "time";
+            }
+          ];
+          action =  [
+            {
+              service =  "script.open_window";
+            }
+          ];
+        }
+        {
+          id =  "open_window_day";
+          alias =  "Open the window in the evening";
+          trigger =  [
+            {
+              at =  "22:15";
+              platform =  "time";
+            }
+          ];
+          action =  [
+            {
+              service =  "script.open_window";
+            }
+          ];
+        }
+        {
+          id =  "1570373794255";
+          alias =  "Close window in the night before asswhole animal truck";
+          trigger =  [
+            {
+              at =  "4:45";
+              platform =  "time";
+            }
+          ];
+          condition =  {
+            condition =  "time";
+            weekday =  [
+              "mon"
+              "thu"
+            ];
+          };
+          action =  [
+            {
+              service =  "script.close_window";
+            }
+          ];
+        }
+        {
+          id =  "tierspital_window_close_automation";
+          alias =  "Close window in the night before asswhole tierspital starts making noise";
+          trigger =  [
+            {
+              at =  "5:35";
+              platform =  "time";
+            }
+          ];
+          condition =  {
+            condition =  "time";
+            weekday =  [
+              "tue"
+              "wed"
+              "fri"
+            ];
+          };
+          action =  [
+            {
+              service =  "script.close_window";
+            }
+          ];
+        }
+        {
+          id =  "church_window_close_automation";
+          alias =  "Close window in the night before asswhole church starts making noise";
+          trigger =  [
+            {
+              at =  "8:30";
+              platform =  "time";
+            }
+          ];
+          condition =  {
+            condition =  "time";
+            weekday =  [
+              "sun"
+              "sat"
+            ];
+          };
+          action =  [
+            {
+              service =  "script.close_window";
+            }
+          ];
+        }
+        {
+          id =  "leave_lights_off";
+          alias =  "Turn off light when I leave";
+          trigger =  {
+            platform =  "state";
+            entity_id =  "person.moritz";
+            to =  "not_home";
+          };
+          action =  [
+            {
+              service =  "light.turn_off";
+              entity_id =  "group.moritz_lights";
+            }
+          ];
+        }
+        {
+          id =  "home_lights_on";
+          alias =  "Turn on light when I come home";
+          trigger =  {
+            platform =  "state";
+            entity_id =  "person.moritz";
+            to =  "home";
+          };
+          action =  [
+            {
+              service =  "light.turn_on";
+              entity_id =  "group.moritz_lights";
+            }
+          ];
+        }
+        {
+          id =  "rhasspy_light_onoff";
+          alias =  "Voice controlled light";
+          trigger =  {
+            platform =  "event";
+            event_type =  "rhasspy_ChangeLightState";
+          };
+          action =  {
+            service_template =  "light.turn_{{ trigger.event.data[\"state\"] }}\n";
+            data_template =  {
+              entity_id =  "{{ trigger.event.data[\"name\"] }}";
+            };
+          };
+        }
+        {
+          id =  "rhasspy_window_open";
+          alias =  "Voice controlled window open";
+          trigger =  {
+            platform =  "event";
+            event_type =  "rhasspy_OpenWindow";
+          };
+          action =  [
+            {
+              service =  "script.open_window";
+            }
+          ];
+        }
+        {
+          id =  "rhasspy_window_close";
+          alias =  "Voice controlled window close";
+          trigger =  {
+            platform =  "event";
+            event_type =  "rhasspy_CloseWindow";
+          };
+          action =  [
+            {
+              service =  "script.close_window";
+            }
+          ];
+        }
+      ];
+
+
+      switch = [{
+        platform = "rpi_gpio";
+        ports = {
+          "18" = "window_motor_enabled";
+          "15" = "window_pin_1";
+          "14" = "window_pin_2";
+          "23" = "ceiling_led_pin";
+        };
+      } {
+        platform = "template";
+        switches = {
+          window = {
+            friendly_name = "Window";
+            value_template = "{{ is_state(\"input_boolean.window\", \"on\") }}";
+            turn_on =
+              {service = "script.open_window";};
+            turn_off =
+              {service = "script.close_window";};
+            };
+          monitor = {
+            friendly_name = "Monitor";
+            value_template = "{{ is_state(\"input_boolean.monitor\", \"on\") }}";
+            turn_on =
+              {service = "script.switch_on_monitor";};
+            turn_off =
+              {service = "script.switch_off_monitor";};
+          };
+        };
+      }];
+
       homeassistant = {
         name = "Home";
         time_zone = "Europe/Zurich"; 
@@ -155,7 +544,7 @@
         ignore = [ ];
       };
       logger = {
-        default = "info";
+        default = "warning";
         logs = {
           pydeconz = "debug";
           "homeassistant.components.deconz" = "debug";
@@ -163,7 +552,8 @@
       };
     };
   };
-  # TODO add docker image for deconz
+  time.timeZone = "Europe/Zurich";
+  services.localtime.enable = true;
 
 
   # https://nixos.wiki/wiki/Overlays

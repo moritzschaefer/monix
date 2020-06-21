@@ -1,0 +1,86 @@
+- id: open_window_day
+  alias: Open the window in the evening
+  trigger:
+  - at: '22:15'
+    platform: time
+  action:
+  - service: script.open_window
+- id: '1570373794255'
+  alias: Close window in the night before asswhole animal truck
+  trigger:
+  - at: '4:45'
+    platform: time
+  condition:
+    condition: time
+    weekday:
+    - mon
+    - thu
+  action:
+  - service: script.close_window
+- id: tierspital_window_close_automation
+  alias: Close window in the night before asswhole tierspital starts making noise
+  trigger:
+  - at: '5:35'
+    platform: time
+  condition:
+    condition: time
+    weekday:
+    - tue
+    - wed
+    - fri
+  action:
+  - service: script.close_window
+- id: church_window_close_automation
+  alias: Close window in the night before asswhole church starts making noise
+  trigger:
+  - at: '8:30'
+    platform: time
+  condition:
+    condition: time
+    weekday:
+    - sun
+    - sat
+  action:
+  - service: script.close_window
+- id: leave_lights_off
+  alias: Turn off light when I leave
+  trigger:
+    platform: state
+    entity_id: person.moritz
+    to: not_home
+  action:
+  - service: light.turn_off
+    entity_id: group.moritz_lights
+- id: home_lights_on
+  alias: Turn on light when I come home
+  trigger:
+    platform: state
+    entity_id: person.moritz
+    to: home
+  action:
+  - service: light.turn_on
+    entity_id: group.moritz_lights
+- id: rhasspy_light_onoff
+  alias: Voice controlled light
+  trigger:
+    platform: event
+    event_type: rhasspy_ChangeLightState
+  action:
+    service_template: >
+      light.turn_{{ trigger.event.data['state'] }}
+    data_template:
+      entity_id: "{{ trigger.event.data['name'] }}"
+- id: rhasspy_window_open
+  alias: Voice controlled window open
+  trigger:
+    platform: event
+    event_type: rhasspy_OpenWindow
+  action:
+  - service: script.open_window
+- id: rhasspy_window_close
+  alias: Voice controlled window close
+  trigger:
+    platform: event
+    event_type: rhasspy_CloseWindow
+  action:
+  - service: script.close_window

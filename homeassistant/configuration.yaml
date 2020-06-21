@@ -1,0 +1,140 @@
+
+# Configure a default setup of Home Assistant (frontend, api, etc)
+default_config:
+
+recorder:
+  purge_interval: 0
+
+shell_command:
+  switch_off_monitor: 'vcgencmd display_power 0'
+  switch_on_monitor: 'vcgencmd display_power 1'
+
+input_boolean:
+  window:
+    name: Controls Window
+    initial: off
+  monitor:
+    name: Controls Monitor
+    initial: on
+
+# Example configuration.yaml entry
+media_player:
+  - platform: mpd
+    host: 127.0.0.1
+
+# GPIO
+switch:
+  - platform: rpi_gpio
+    ports:
+      18: window_motor_enabled
+      15: window_pin_1
+      14: window_pin_2
+      23: ceiling_led_pin
+  - platform: template
+    switches:
+      window:
+        friendly_name: Window
+        value_template: "{{ is_state('input_boolean.window', 'on') }}"
+        turn_on:
+          service: script.open_window
+        turn_off:
+          service: script.close_window
+      monitor:
+        friendly_name: Monitor
+        value_template: "{{ is_state('input_boolean.monitor', 'on') }}"
+        turn_on:
+          service: script.switch_on_monitor
+        turn_off:
+          service: script.switch_off_monitor
+
+light:
+  - platform: switch
+    name: Window ceiling light
+    entity_id: switch.ceiling_led_pin
+  - platform: switch
+    name: Wardrobe ceiling light
+    entity_id: switch.wardrobe_light
+
+# microphone sensor
+# sensor:
+#   - platform: command_line
+#     command: bash -c 'arecord -D hw:2,0 -t wav -c 1 -f S16 -r 44100 -d 1 - 2>/tmp/e0 | tee /tmp/t1 | python3 -c "import sys, wave, struct; z = sum([abs(v) for v in struct.unpack(\"<44100h\", wave.open(sys.stdin.buffer, \"rb\").readframes(44100))])//44100; print(z)" 2> /tmp/t1 | tee /tmp/t2'
+#     # command: bash -c 'arecord -D hw:2,0 -t wav -c 1 -f S16 -r 44100 -d 1 - 2>/dev/null | python3 -c "import sys; sys.stdout.write(\"5\n\")"'
+#     name: "Noise microphone"
+#     scan_interval: 3
+#     command_timeout: 3
+# long-term: ffmpeg -f alsa -ac 1 -i hw:2,0 -vn -af astats=metadata=1:reset=100,ametadata=print:key=lavfi.astats.Overall
+binary_sensor:
+  - platform: ffmpeg_noise
+    initial_state: false
+    name: Outdoor Noise Sensor
+    input: -f alsa -ac 1 -i hw:2,0
+    peak: -44
+    duration: 3
+    reset: 1
+
+history_graph:
+  gr1:
+    entities:
+      - binary_sensor.outdoor_noise_sensor
+    hours_to_show: 1
+    refresh: 4
+
+logger:
+  default: critical
+  logs:
+    # log level for HA core
+    homeassistant.core: fatal
+
+    # log level for MQTT integration
+    homeassistant.components.mqtt: warning
+
+    homeassistant.binary_sensor.ffmpeg_noise: warning
+
+
+homeassistant:
+  customize: !include customize.yaml
+  auth_providers:
+   - type: homeassistant
+   - type: legacy_api_password
+     api_password: !secret http_password
+# Uncomment this if you are using SSL/TLS, running in Docker container, etc.
+# http:
+#   base_url: example.duckdns.org:8123
+# Example configuration.yaml entry
+device_tracker:
+  - platform: fritz
+    host: 192.168.178.1
+    username: admin
+    password: HaveABreak!
+    interval_seconds: 8
+    consider_home: 180
+    new_device_defaults:
+      track_new_devices: false
+      hide_if_away: false
+
+# Text to speech
+tts:
+  - platform: google_translate
+
+sensor:
+  - platform: systemmonitor
+    resources:
+      - type: disk_use_percent
+        arg: /
+      - type: memory_free
+      - type: processor_use
+      - type: load_1m
+
+# org_state:
+#   files:
+#     - "/"
+#     - "/2"
+#  tag: home
+#   interval: 5
+  
+
+
+group: !include groups.yaml
+automation: !include automations.yaml
+script: !include scripts.yaml

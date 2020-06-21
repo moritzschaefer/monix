@@ -1,23 +1,23 @@
-self: super:
-# Within the overlay we use a recursive set, though I think we can use `self` as well.
-rec {
-  # nix-shell -p python.pkgs.my_stuff
-  python = super.python.override {
-    # Careful, we're using a different self and super here!
-    packageOverrides = self: super: {
-      pydeconz = super.buildPythonPackage rec {
-        pname = "pydeconz";
-        version = "71";
-        # name = "${pname}-${version}";
-        propagatedBuildInputs = [ super.aiohttp ];
-        src = super.fetchPypi {
-          inherit pname version;
-          sha256 = "cd7436779296ab259c1e3e02d639a5d6aa7eca300afb03bb5553a787b27e324c";
-        };
-      };
+let
+  myPythonOverride = {
+    packageOverrides = self: super: rec {
+      pydeconz = super.callPackage ./pydeconz.nix {};
+      rpi-gpio = super.callPackage ./rpi-gpio.nix {};
     };
   };
-  # nix-shell -p pythonPackages.my_stuff
-  pythonPackages = python.pkgs;
-}
+in
+self: super: rec {
 
+  # https://discourse.nixos.org/t/how-to-add-custom-python-package/536/4
+  # python = super.python.override myPythonOverride;
+  # python2 = super.python2.override myPythonOverride;
+  python3 = super.python3.override myPythonOverride;
+  python37 = super.python37.override myPythonOverride;
+  python38 = super.python38.override myPythonOverride;
+
+  #pythonPackages = python.pkgs;
+  # python2Packages = python.pkgs;
+  python3Packages = python3.pkgs;
+  python37Packages = python37.pkgs;
+  python38Packages = python38.pkgs;
+}

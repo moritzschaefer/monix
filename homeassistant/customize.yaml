@@ -1,0 +1,28 @@
+script.close_window:
+  icon: mdi:folder
+script.open_window:
+  icon: mdi:folder-open
+device_tracker.ami6_moritz:
+  hidden: true
+sensor.battery_level:
+  hidden: true
+sensor.battery_state:
+  hidden: true
+sensor.connection_type:
+  hidden: true
+sensor.geocoded_location:
+  hidden: true
+sensor.sim_1:
+  hidden: true
+sensor.ssid:
+  hidden: true
+sensor.bssid:
+  hidden: true
+switch.window_pin_1:
+  hidden: true
+switch.window_pin_2:
+  hidden: true
+switch.window_motor_enabled:
+  hidden: true
+switch.ceiling_led_pin:
+  hidden: true

@@ -1,0 +1,6 @@
+moritz_lights:
+  name: "Moritz' Lichter"
+  entities:
+    - light.window_ceiling_light
+    - light.moritz
+    - light.wardrobe_ceiling_light
