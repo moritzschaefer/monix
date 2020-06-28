@@ -1,0 +1,28 @@
+esphome:
+  name: mowater
+  platform: ESP8266
+  board: nodemcuv2
+
+wifi:
+  ssid: "NotANetwork"
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Mowater Fallback Hotspot"
+    password: "VynwNZN3glml"
+
+captive_portal:
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+switch:
+  - platform: gpio
+    name: "Water pump"
+    pin: 14  # D5
