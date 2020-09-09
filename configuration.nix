@@ -28,8 +28,18 @@
     # };
   # };
   # };
-
-
+  nixpkgs.config.packageOverrides = 
+    let unstable = import <nixos-unstable>  { config = { allowUnfree = true; }; };
+    in
+      pkgs: {
+        nur = import (builtins.fetchTarball "https://github.com/nix-community/NUR/archive/master.tar.gz") {
+          inherit pkgs;
+        };
+        lapack = unstable.lapack;
+        blas = unstable.blas;
+        openfst = unstable.openfst;
+        opengrm-ngram = unstable.opengrm-ngram;
+      };
 
   nixpkgs.overlays = [ (import ./overlays/python-packages.nix) ];
   boot.loader.grub.enable = false;
@@ -75,9 +85,10 @@
       };
     }
   ); 
-  mypython =  python3.withPackages (python-packages: [ python-packages.rpi-gpio ]);
+  mypython =  python3.withPackages (python-packages: [ python-packages.rpi-gpio python-packages.fritzconnection ]);
   in [
-    wget emacs tmux curl htop git myneovim mypython
+    wget emacs tmux curl htop git myneovim mypython 
+    # nur.repos.mic92.rhasspy
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -171,29 +182,53 @@
     port = 8123;
     openFirewall = true;
     applyDefaultConfig = false;
-    package = pkgs.home-assistant.override {
-      extraPackages = ps: with ps; [ colorlog rpi-gpio];
-      packageOverrides = self: super: {
-        pydeconz = pkgs.python3Packages.pydeconz;
-        rpi-gpio = pkgs.python3Packages.rpi-gpio;
+    package = pkgs.home-assistant.override { 
+        extraPackages = ps: with ps; [ colorlog rpi-gpio pydeconz defusedxml aioesphomeapi PyChromecast ];
+        packageOverrides = self: super: {
+          pydeconz = pkgs.python3Packages.pydeconz;
+          rpi-gpio = pkgs.python3Packages.rpi-gpio;
+        };
       };
-    };
 
     config = {
-      # device_tracker = [
-      #   {
-      #     platform = "fritz";
-      #     host = "192.168.178.1";
-      #     username = "admin";
-      #     password = "HaveABreak!";
-      #     interval_seconds = "8";
-      #     consider_home = "180";
-      #     new_device_defaults = {
-      #       track_new_devices = "false";
-      #       hide_if_away = "false";
-      #     };
-      #   }
-      # ];
+      default_config = {};
+      device_tracker = [
+        {
+          platform = "fritz";
+          host = "192.168.178.1";
+          username = "admin";
+          password = "HaveABreak!";
+          interval_seconds = "8";
+          consider_home = "180";
+          new_device_defaults = {
+            track_new_devices = "false";
+            hide_if_away = "false";
+          };
+        }
+      ];
+      
+      light = [
+        {
+        platform = "switch";
+        name = "Window ceiling light";
+        entity_id = "switch.ceiling_led_pin";
+        }
+        {
+        platform = "switch";
+        name = "Wardrobe ceiling light";
+        entity_id = "switch.wardrobe_light";
+        }
+      ];
+      group = {
+        moritz_lights = {
+          name = "Moritz' Lichter";
+          entities = [
+            "light.window_ceiling_light"
+            "light.moritz"
+            "light.wardrobe_ceiling_light"
+          ];
+        };
+      };
       input_boolean = {
         window = {
           name = "Controls Window";
@@ -205,6 +240,27 @@
         };
       };
       script = {
+        water_3minute = {
+          alias = "Water 3 minutes";
+          description = "Enable the water pump for 3 minutes";
+          sequence = [
+            {
+              service = "switch.turn_on";
+              data = {
+                entity_id = "switch.water_pump";
+              };
+            }
+            {
+              delay = 180;
+            }
+            {
+              service = "switch.turn_off";
+              data = {
+                entity_id = "switch.water_pump";
+              };
+            }
+          ];
+        };
         close_window = {
           alias = "Close Window";
           description = "Closes window";
@@ -328,21 +384,6 @@
       };
       automation = [
         {
-          id =  "open_window_test";
-          alias =  "Open the window now for test";
-          trigger =  [
-            {
-              at =  "16:17";
-              platform =  "time";
-            }
-          ];
-          action =  [
-            {
-              service =  "script.open_window";
-            }
-          ];
-        }
-        {
           id =  "open_window_day";
           alias =  "Open the window in the evening";
           trigger =  [
@@ -455,6 +496,24 @@
           ];
         }
         {
+          id = "water_plants";
+          alias = "Water the plants every hour during the day";
+          trigger = {
+            platform = "time_pattern";
+            hours = "/2";
+          };
+          condition = {
+            condition = "time";
+            after = "11:00:00";
+            before = "21:00:00";
+          };
+          action = [
+            {
+              service = "script.water_3minute";
+            }
+          ];
+        }
+        {
           id =  "rhasspy_light_onoff";
           alias =  "Voice controlled light";
           trigger =  {
@@ -530,9 +589,9 @@
       homeassistant = {
         name = "Home";
         time_zone = "Europe/Zurich"; 
-        latitude = 1;
-        longitude = 1;
-        elevation = 1;
+        latitude = 47.401092299999995; 
+        longitude = 8.5537682;
+        elevation = 473;
         unit_system = "metric";
         temperature_unit = "C";
       };
