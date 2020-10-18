@@ -2,7 +2,7 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, options, ... }:
+{ lib, config, pkgs, options, ... }:
 
 {
   imports =
@@ -34,11 +34,21 @@
       pkgs: {
         nur = import (builtins.fetchTarball "https://github.com/nix-community/NUR/archive/master.tar.gz") {
           inherit pkgs;
+	  repoOverrides = {
+	    # mic92 = import (builtins.fetchTarball "https://github.com/mweinelt/nur-packages-mic92/archive/master.tar.gz");
+	  };
         };
         lapack = unstable.lapack;
         blas = unstable.blas;
         openfst = unstable.openfst;
         opengrm-ngram = unstable.opengrm-ngram;
+	# home-assistant = unstable.home-assistant;
+	#python = unstable.python3.override {    
+            #packageOverrides = self: super: rec {
+                #botocore = unstable.python37Packages.botocore;
+                #boto3 = unstable.python37Packages.boto3;
+	    #};
+        #};
       };
 
   nixpkgs.overlays = [ (import ./overlays/python-packages.nix) ];
@@ -47,6 +57,7 @@
   boot.loader.raspberryPi.version = 4;
   boot.kernelPackages = pkgs.linuxPackages_rpi4;
 
+  hardware.bluetooth.enable = true;
   # Use the GRUB 2 boot loader.
   # boot.loader.grub.enable = true;
   # boot.loader.grub.version = 2;
@@ -73,7 +84,7 @@
       vimAlias = true;
       configure = {
         packages.myPlugins = with pkgs.vimPlugins; {
-          start = [ spacevim ]; 
+          start = [ ]; #spacevim ]; 
           opt = [];
         };
         customRC = ''
@@ -85,10 +96,11 @@
       };
     }
   ); 
-  mypython =  python3.withPackages (python-packages: [ python-packages.rpi-gpio python-packages.fritzconnection ]);
+  mypython =  python3.withPackages (python-packages: [ python-packages.rpi-gpio python-packages.fritzconnection]);
   in [
-    wget emacs tmux curl htop git myneovim mypython 
-    # nur.repos.mic92.rhasspy
+    arp-scan nmap wget emacs tmux curl htop git myneovim mypython 
+    nur.repos.mic92.rhasspy
+    usbutils pciutils raspberrypi-tools
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -127,7 +139,7 @@
   users.users.moritz = {
     isNormalUser = true;
     home = "/home/moritz";
-    extraGroups = [ "wheel" "networkmanager" "dialout" "docker" "gpio" ];
+    extraGroups = [ "wheel" "networkmanager" "dialout" "docker" "gpio" "audio" ];
     openssh.authorizedKeys.keys = [ "" ];
   };
   virtualisation.docker.enable = true;
@@ -147,8 +159,52 @@
   # services.printing.enable = true;
 
   # Enable sound.
-  # sound.enable = true;
-  # hardware.pulseaudio.enable = true;
+  sound.enable = true;
+  hardware.pulseaudio.enable = true;
+  nixpkgs.config.pulseaudio = true;
+  boot.loader.raspberryPi.firmwareConfig = ''
+    dtparam=audio=on
+  '';
+  sound.extraConfig = (builtins.readFile ./asound.conf);  # combine microphones..
+  systemd.packages = [ pkgs.spotifyd ];
+  systemd.user.services.spotifyd = let
+    username=(lib.strings.fileContents ./spotify_pass/username); 
+    password=(lib.strings.fileContents ./spotify_pass/password);
+    config = pkgs.writeText "spotifyd.conf" ''
+      [global]
+      username = ${username}
+      password = ${password}
+      use_keyring = false
+      backend = pulseaudio
+      bitrate = 160
+      device_name = Monix Pi
+      no_audio_cache = true
+    '';
+  in {
+      # wantedBy = [ "multi-user.target" ];
+      # after = [ "network-online.target" "sound.target" ];
+      # description = "spotifyd, a Spotify playing daemon";
+      serviceConfig = {
+        ExecStart = "${pkgs.spotifyd}/bin/spotifyd --no-daemon --config-path ${config}";
+        Restart = "always";
+        RestartSec = 12;
+      };
+  };
+
+  services.spotifyd = {
+    enable = false;
+    config = 
+    let username=(lib.strings.fileContents ./spotify_pass/username); password=(lib.strings.fileContents ./spotify_pass/password); in ''
+      [global]
+      username = ${username}
+      password = ${password}
+      use_keyring = false
+      backend = pulseaudio
+      bitrate = 160
+      device_name = Monix Pi
+      no_audio_cache = true
+  '';
+  };
 
   # Enable the X11 windowing system.
   # services.xserver.enable = true;
@@ -176,6 +232,23 @@
     SUBSYSTEM=="gpio", KERNEL=="gpio*", ACTION=="add", RUN+="${gpio_udev_script}"
   '';
 
+  systemd.services.rhasspy = {
+    after = [ "network.target" ];
+    wantedBy = [ "multi-user.target" ];
+    # rhasspy sets `/dev/stdout` as log file for supervisord
+    # supervisord tries to open /dev/stdout and fails with the default systemd device
+    # it works for pipes so...
+    script = ''
+      ${pkgs.nur.repos.mic92.rhasspy}/bin/rhasspy --profile en | ${pkgs.utillinux}/bin/logger
+    '';
+    serviceConfig = {
+      User = "moritz";
+      # needed for pulseaudio
+      Environment = "XDG_RUNTIME_DIR=/run/user/1001"; # pi is 1000
+    };
+  };
+  
+
   services.home-assistant = {
     configWritable = true;
     enable = true;
@@ -194,16 +267,12 @@
       default_config = {};
       device_tracker = [
         {
-          platform = "fritz";
-          host = "192.168.178.1";
-          username = "admin";
-          password = "HaveABreak!";
-          interval_seconds = "8";
-          consider_home = "180";
-          new_device_defaults = {
-            track_new_devices = "false";
-            hide_if_away = "false";
-          };
+          platform = "bluetooth_tracker";
+        }
+	{ 
+	  platform = "nmap_tracker";
+	  hosts = "192.168.0.20"; # I only need to check my phone..
+	  home_interval = 10;
         }
       ];
       

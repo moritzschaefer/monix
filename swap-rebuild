@@ -1,0 +1,14 @@
+#!/bin/sh
+
+if [ ! -f /tmp/swap ]; then
+	fallocate -l 4G /tmp/swap
+	mkswap /tmp/swap
+	chmod 600 /tmp/swap
+fi
+
+swapon /tmp/swap
+
+nixos-rebuild switch
+
+swapoff /tmp/swap
+
