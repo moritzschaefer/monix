@@ -3,6 +3,7 @@ let
     packageOverrides = self: super: rec {
       pydeconz = super.callPackage ./pydeconz.nix {};
       rpi-gpio = super.callPackage ./rpi-gpio.nix {};
+      python-nmap = super.callPackage ./python-nmap.nix {};
     };
   };
 in

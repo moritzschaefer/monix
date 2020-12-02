@@ -1,5 +1,6 @@
 { config, ... }:
 {
+ # config.virtualisation.oci-containers.containers = {
   config.docker-containers = {
     deconz = {
       image = "marthoc/deconz:latest";

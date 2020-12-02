@@ -1,14 +1,14 @@
 #!/bin/sh
 
 if [ ! -f /tmp/swap ]; then
-	fallocate -l 4G /tmp/swap
-	mkswap /tmp/swap
-	chmod 600 /tmp/swap
+	sudo fallocate -l 4G /tmp/swap
+	sudo mkswap /tmp/swap
+	sudo chmod 600 /tmp/swap
 fi
 
-swapon /tmp/swap
+sudo swapon /tmp/swap
 
-nixos-rebuild switch
+sudo nixos-rebuild switch
 
-swapoff /tmp/swap
+sudo swapoff /tmp/swap
 

@@ -181,8 +181,9 @@
       no_audio_cache = true
     '';
   in {
-      # wantedBy = [ "multi-user.target" ];
-      # after = [ "network-online.target" "sound.target" ];
+      enable = true;
+      wantedBy = [ "multi-user.target" ];
+      after = [ "network-online.target" "sound.target" ];
       # description = "spotifyd, a Spotify playing daemon";
       serviceConfig = {
         ExecStart = "${pkgs.spotifyd}/bin/spotifyd --no-daemon --config-path ${config}";
@@ -190,7 +191,7 @@
         RestartSec = 12;
       };
   };
-
+  # this one is buggy unfordunately..
   services.spotifyd = {
     enable = false;
     config = 
@@ -256,23 +257,24 @@
     openFirewall = true;
     applyDefaultConfig = false;
     package = pkgs.home-assistant.override { 
-        extraPackages = ps: with ps; [ colorlog rpi-gpio pydeconz defusedxml aioesphomeapi PyChromecast ];
+        extraPackages = ps: with ps; [ colorlog rpi-gpio pydeconz defusedxml aioesphomeapi PyChromecast python-nmap pkgs.nmap ];
         packageOverrides = self: super: {
           pydeconz = pkgs.python3Packages.pydeconz;
           rpi-gpio = pkgs.python3Packages.rpi-gpio;
+          python-nmap = pkgs.python3Packages.python-nmap;
         };
       };
 
     config = {
       default_config = {};
       device_tracker = [
-        {
-          platform = "bluetooth_tracker";
-        }
+        #{
+          #platform = "bluetooth_tracker";
+        #}
 	{ 
 	  platform = "nmap_tracker";
-	  hosts = "192.168.0.20"; # I only need to check my phone..
-	  home_interval = 10;
+	  hosts = "192.168.0.222"; # I only need to check my phone..
+	  home_interval = 2;
         }
       ];
       
@@ -311,7 +313,7 @@
       script = {
         water_3minute = {
           alias = "Water 3 minutes";
-          description = "Enable the water pump for 3 minutes";
+          description = "Enable the water pump for some time (in seconds)";
           sequence = [
             {
               service = "switch.turn_on";
@@ -320,7 +322,7 @@
               };
             }
             {
-              delay = 180;
+              delay = 15;
             }
             {
               service = "switch.turn_off";
@@ -569,12 +571,12 @@
           alias = "Water the plants every hour during the day";
           trigger = {
             platform = "time_pattern";
-            hours = "/2";
+            hours = "/3";
           };
           condition = {
             condition = "time";
-            after = "11:00:00";
-            before = "21:00:00";
+            after = "12:00:00";
+            before = "20:00:00";
           };
           action = [
             {
@@ -695,6 +697,6 @@
   # compatible, in order to avoid breaking some software such as database
   # servers. You should change this only after NixOS release notes say you
   # should.
-  system.stateVersion = "20.03"; # Did you read the comment?
+  system.stateVersion = "20.09"; # Did you read the comment?
 }
 
