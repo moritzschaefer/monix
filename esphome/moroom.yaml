@@ -1,16 +1,16 @@
 esphome:
-  name: moroomwardrobe
-  platform: ESP8266
-  board: d1_mini
+    name: moroomwardrobe
+    platform: ESP8266
+    board: d1_mini
 
 wifi:
-  ssid: "NotANetwork"
-  password: !secret wifi_password
+    ssid: "NotANetwork"
+    password: !secret wifi_password
 
-  # Enable fallback hotspot (captive portal) in case wifi connection fails
-  ap:
-    ssid: "Moroomwardrobe Fallback Hotspot"
-    password: "VynwNZN3glml"
+    # Enable fallback hotspot (captive portal) in case wifi connection fails
+    ap:
+        ssid: "Moroomwardrobe Fallback Hotspot"
+        password: "VynwNZN3glml"
 
 captive_portal:
 
@@ -21,8 +21,17 @@ logger:
 api:
 
 ota:
-  
+    
 switch:
-  - platform: gpio
-    name: "Wardrobe light"
-    pin: 14
+    - platform: gpio
+      name: "Wardrobe light"
+      pin: 14
+
+sensor:
+    - platform: dht
+      pin: 15
+      temperature:
+          name: "Living Room Temperature"
+      humidity:
+          name: "Living Room Humidity"
+      update_interval: 30s
