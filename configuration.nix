@@ -99,7 +99,8 @@
   mypython =  python3.withPackages (python-packages: [ python-packages.rpi-gpio python-packages.fritzconnection]);
   in [
     arp-scan nmap wget emacs tmux curl htop git myneovim mypython 
-    nur.repos.mic92.rhasspy
+    ffmpeg
+    # nur.repos.mic92.rhasspy
     usbutils pciutils raspberrypi-tools
   ];
 
@@ -233,21 +234,21 @@
     SUBSYSTEM=="gpio", KERNEL=="gpio*", ACTION=="add", RUN+="${gpio_udev_script}"
   '';
 
-  systemd.services.rhasspy = {
-    after = [ "network.target" ];
-    wantedBy = [ "multi-user.target" ];
-    # rhasspy sets `/dev/stdout` as log file for supervisord
-    # supervisord tries to open /dev/stdout and fails with the default systemd device
-    # it works for pipes so...
-    script = ''
-      ${pkgs.nur.repos.mic92.rhasspy}/bin/rhasspy --profile en | ${pkgs.utillinux}/bin/logger
-    '';
-    serviceConfig = {
-      User = "moritz";
-      # needed for pulseaudio
-      Environment = "XDG_RUNTIME_DIR=/run/user/1001"; # pi is 1000
-    };
-  };
+  # systemd.services.rhasspy = {
+  #   after = [ "network.target" ];
+  #   wantedBy = [ "multi-user.target" ];
+  #   # rhasspy sets `/dev/stdout` as log file for supervisord
+  #   # supervisord tries to open /dev/stdout and fails with the default systemd device
+  #   # it works for pipes so...
+  #   script = ''
+  #     ${pkgs.nur.repos.mic92.rhasspy}/bin/rhasspy --profile en | ${pkgs.utillinux}/bin/logger
+  #   '';
+  #   serviceConfig = {
+  #     User = "moritz";
+  #     # needed for pulseaudio
+  #     Environment = "XDG_RUNTIME_DIR=/run/user/1001"; # pi is 1000
+  #   };
+  # };
   
 
   services.home-assistant = {
@@ -655,6 +656,17 @@
               {service = "script.switch_off_monitor";};
           };
         };
+      }];
+      ffmpeg = {
+        ffmpeg_bin = "/run/current-system/sw/bin/ffmpeg";
+      };
+      binary_sensor = [{
+        platform = "ffmpeg_noise";
+        initial_state = true;
+        input = "-f alsa -channels 1 -sample_rate 44100 -i plughw:2 -vn";
+        peak = -32;
+        duration = 1;
+        reset = 150;
       }];
 
       homeassistant = {
