@@ -663,7 +663,7 @@
       binary_sensor = [{
         platform = "ffmpeg_noise";
         initial_state = true;
-        input = "-f alsa -channels 1 -sample_rate 44100 -i plughw:2 -vn";
+        input = "-f alsa -i plughw:2 -sample_rate 44100";
         peak = -32;
         duration = 1;
         reset = 150;
