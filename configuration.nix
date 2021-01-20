@@ -34,10 +34,11 @@
       pkgs: {
         nur = import (builtins.fetchTarball "https://github.com/nix-community/NUR/archive/master.tar.gz") {
           inherit pkgs;
-	  repoOverrides = {
-	    # mic92 = import (builtins.fetchTarball "https://github.com/mweinelt/nur-packages-mic92/archive/master.tar.gz");
-	  };
+          repoOverrides = {
+            # mic92 = import (builtins.fetchTarball "https://github.com/mweinelt/nur-packages-mic92/archive/master.tar.gz");
+          };
         };
+        unstable = unstable;
         lapack = unstable.lapack;
         blas = unstable.blas;
         openfst = unstable.openfst;
@@ -265,9 +266,9 @@
           pydeconz = pkgs.python3Packages.pydeconz;
           rpi-gpio = pkgs.python3Packages.rpi-gpio;
           python-nmap = pkgs.python3Packages.python-nmap;
-          botocore = unstable.python3Packages.botocore;
-          boto3 = unstable.python3Packages.boto3;
-          ha-ffmpeg = unstable.python3Packages.ha-ffmpeg;
+          botocore = pkgs.unstable.python3Packages.botocore;
+          boto3 = pkgs.unstable.python3Packages.boto3;
+          ha-ffmpeg = pkgs.unstable.python3Packages.ha-ffmpeg;
         };
       };
 
