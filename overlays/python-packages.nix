@@ -15,10 +15,12 @@ self: super: rec {
   python3 = super.python3.override myPythonOverride;
   python37 = super.python37.override myPythonOverride;
   python38 = super.python38.override myPythonOverride;
+  python39 = super.python39.override myPythonOverride;
 
   #pythonPackages = python.pkgs;
   # python2Packages = python.pkgs;
   python3Packages = python3.pkgs;
   python37Packages = python37.pkgs;
   python38Packages = python38.pkgs;
+  python39Packages = python39.pkgs;
 }

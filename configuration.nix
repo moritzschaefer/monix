@@ -42,7 +42,9 @@
         blas = unstable.blas;
         openfst = unstable.openfst;
         opengrm-ngram = unstable.opengrm-ngram;
-	# home-assistant = unstable.home-assistant;
+        # home-assistant = unstable.home-assistant;
+        python3 = pkgs.python39;
+        python3Packages = pkgs.python39Packages;
 	#python = unstable.python3.override {    
             #packageOverrides = self: super: rec {
                 #botocore = unstable.python37Packages.botocore;
@@ -258,11 +260,14 @@
     openFirewall = true;
     applyDefaultConfig = false;
     package = pkgs.home-assistant.override {
-        extraPackages = ps: with ps; [ colorlog rpi-gpio pydeconz defusedxml aioesphomeapi PyChromecast python-nmap pkgs.nmap pyipp brother pkgs.ffmpeg ];
+        extraPackages = ps: with ps; [ colorlog rpi-gpio pydeconz defusedxml aioesphomeapi PyChromecast python-nmap pkgs.nmap pyipp pymetno brother pkgs.ffmpeg ha-ffmpeg ];
         packageOverrides = self: super: {
           pydeconz = pkgs.python3Packages.pydeconz;
           rpi-gpio = pkgs.python3Packages.rpi-gpio;
           python-nmap = pkgs.python3Packages.python-nmap;
+          botocore = unstable.python3Packages.botocore;
+          boto3 = unstable.python3Packages.boto3;
+          ha-ffmpeg = unstable.python3Packages.ha-ffmpeg;
         };
       };
 
