@@ -257,8 +257,8 @@
     port = 8123;
     openFirewall = true;
     applyDefaultConfig = false;
-    package = pkgs.home-assistant.override { 
-        extraPackages = ps: with ps; [ colorlog rpi-gpio pydeconz defusedxml aioesphomeapi PyChromecast python-nmap pkgs.nmap ];
+    package = pkgs.home-assistant.override {
+        extraPackages = ps: with ps; [ colorlog rpi-gpio pydeconz defusedxml aioesphomeapi PyChromecast python-nmap pkgs.nmap pyipp pkgs.ffmpeg ];
         packageOverrides = self: super: {
           pydeconz = pkgs.python3Packages.pydeconz;
           rpi-gpio = pkgs.python3Packages.rpi-gpio;
@@ -658,7 +658,7 @@
         };
       }];
       ffmpeg = {
-        ffmpeg_bin = "/run/current-system/sw/bin/ffmpeg";
+        # ffmpeg_bin = "/run/current-system/sw/bin/ffmpeg";
       };
       binary_sensor = [{
         platform = "ffmpeg_noise";
