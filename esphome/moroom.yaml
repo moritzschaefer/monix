@@ -33,12 +33,16 @@ switch:
     - platform: gpio
       name: "Wardrobe light"
       pin: 14
+    - platform: gpio
+      name: "Wardrobe plant pump"
+      pin: 5  # D1
 
 sensor:
     - platform: dht
+      model: DHT22
       pin: 13
       temperature:
           name: "Living Room Temperature"
       humidity:
           name: "Living Room Humidity"
-      update_interval: 30s
+      update_interval: 15s
