@@ -534,6 +534,48 @@
           ];
         }
         {
+          id =  "tierspital_noise_close_automation";
+          alias =  "Close window during night when there is noise";
+          trigger =  [
+            {
+              to =  "on";
+              platform =  "state";
+              entity_id = "binary_sensor.outdoor_noise"
+            }
+          ];
+          condition =  {
+            condition =  "time";
+            after = "12:30:00";  # TODO 22
+            before = "9:00:00";
+          };
+          action =  [
+            {
+              service =  "script.close_window";
+            }
+          ];
+        }
+        {
+          id =  "tierspital_noise_open_automation";
+          alias =  "Open window during night when there is no more noise";
+          trigger =  [
+            {
+              to =  "off";
+              platform =  "state";
+              entity_id = "binary_sensor.outdoor_noise"
+            }
+          ];
+          condition =  {
+            condition =  "time";
+            after = "12:30:00";  # TODO 22
+            before = "9:00:00";
+          };
+          action =  [
+            {
+              service =  "script.open_window";
+            }
+          ];
+        }
+        {
           id =  "tierspital_window_close_automation";
           alias =  "Close window in the night before asswhole tierspital starts making noise";
           trigger =  [
