@@ -540,7 +540,7 @@
             {
               to =  "on";
               platform =  "state";
-              entity_id = "binary_sensor.outdoor_noise"
+              entity_id = "binary_sensor.outdoor_noise";
             }
           ];
           condition =  {
@@ -561,7 +561,7 @@
             {
               to =  "off";
               platform =  "state";
-              entity_id = "binary_sensor.outdoor_noise"
+              entity_id = "binary_sensor.outdoor_noise";
             }
           ];
           condition =  {
