@@ -1,12 +1,12 @@
 { buildPythonPackage, fetchPypi, aiohttp }:
 buildPythonPackage rec {
   pname = "pydeconz";
-  version = "71";
+  version = "81";
   # name = "${pname}-${version}";
   propagatedBuildInputs = [ aiohttp ];
   doCheck = false;
   src = fetchPypi {
     inherit pname version;
-    sha256 = "cd7436779296ab259c1e3e02d639a5d6aa7eca300afb03bb5553a787b27e324c";
+    sha256 = "928ec5e8296af6c5969b92118acaebae6619051f6a5e27a056871daffbf04ce2";
   };
 }
