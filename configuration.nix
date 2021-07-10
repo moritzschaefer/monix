@@ -146,6 +146,9 @@
     extraGroups = [ "wheel" "networkmanager" "dialout" "docker" "gpio" "audio" ];
     openssh.authorizedKeys.keys = [ "" ];
   };
+  users.users.hass = {
+    extraGroups = [ "audio" ];
+  };
   virtualisation.docker.enable = true;
 
   # List services that you want to enable:
@@ -637,10 +640,10 @@
       switch = [{
         platform = "rpi_gpio";
         ports = {
-          "18" = "window_motor_enabled";
-          "15" = "window_pin_1";
-          "14" = "window_pin_2";
-          "23" = "ceiling_led_pin";
+          # "18" = "window_motor_enabled";
+          # "15" = "window_pin_1";
+          # "14" = "window_pin_2";
+          # "23" = "ceiling_led_pin";
         };
       } {
         platform = "template";
