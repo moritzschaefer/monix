@@ -1,9 +1,26 @@
 let
   myPythonOverride = {
     packageOverrides = self: super: rec {
-      pydeconz = super.callPackage ./pydeconz.nix {};
-      rpi-gpio = super.callPackage ./rpi-gpio.nix {};
-      python-nmap = super.callPackage ./python-nmap.nix {};
+      pydeconz = self.callPackage ./pydeconz.nix {};
+      rpi-gpio = self.callPackage ./rpi-gpio.nix {};
+      python-nmap = self.callPackage ./python-nmap.nix {};
+      pyflakes = self.callPackage ./pyflakes.nix {};
+      # uvloop = self.callPackage ./uvloop.nix {};
+      uvicorn = super.uvicorn.overrideAttrs (oldAttrs: {
+        propagatedBuildInputs = oldAttrs.propagatedBuildInputs ++ [ self.setuptools ];
+        checkPhase = "";
+	doCheck = false;
+	doInstallCheck = false;
+      });
+      pproxy = super.pproxy.overrideAttrs (oldAttrs: {
+        propagatedBuildInputs = oldAttrs.propagatedBuildInputs ++ [ self.setuptools ];
+      });
+      uvloop = super.uvloop.overrideAttrs (oldAttrs: {
+        pytestFlagsArray = oldAttrs.pytestFlagsArray ++ [ "--ignore=tests/test_sockets.py" "--ignore=tests/test_signals.py" "--ignore=tests/test_regr1.py" ];
+        checkPhase = "";
+	doCheck = false;
+	doInstallCheck = false;
+        });
     };
   };
 in

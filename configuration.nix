@@ -38,14 +38,16 @@
             # mic92 = import (builtins.fetchTarball "https://github.com/mweinelt/nur-packages-mic92/archive/master.tar.gz");
           };
         };
-        unstable = unstable;
-        lapack = unstable.lapack;
-        blas = unstable.blas;
-        openfst = unstable.openfst;
-        opengrm-ngram = unstable.opengrm-ngram;
+        # unstable = unstable;
+        # lapack = unstable.lapack;
+        # blas = unstable.blas;
+        # openfst = unstable.openfst;
+	# flake8 = unstable.flake8;
+	# glibc = unstable.glibc;
+        # opengrm-ngram = unstable.opengrm-ngram;
         # home-assistant = unstable.home-assistant;
-        python3 = pkgs.python39;
-        python3Packages = pkgs.python39Packages;
+        python3 = pkgs.python38;
+        python3Packages = pkgs.python3Packages;
 	#python = unstable.python3.override {    
             #packageOverrides = self: super: rec {
                 #botocore = unstable.python37Packages.botocore;
@@ -75,7 +77,11 @@
   #   consoleFont = "Lat2-Terminus16";
   #   consoleKeyMap = "us";
   #   defaultLocale = "en_US.UTF-8";
+  #
   # };
+  nixpkgs.config.permittedInsecurePackages = [
+    "homeassistant-0.114.4"
+  ];
 
   # Set your time zone.
   # time.timeZone = "Europe/Amsterdam";
@@ -104,7 +110,7 @@
     arp-scan nmap wget emacs tmux curl htop git myneovim mypython 
     ffmpeg
     # nur.repos.mic92.rhasspy
-    usbutils pciutils raspberrypi-tools
+    usbutils pciutils libraspberrypi 
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -145,6 +151,9 @@
     home = "/home/moritz";
     extraGroups = [ "wheel" "networkmanager" "dialout" "docker" "gpio" "audio" ];
     openssh.authorizedKeys.keys = [ "" ];
+  };
+  users.users.hass = {
+    extraGroups = [ "gpio" "dialout" ];
   };
   virtualisation.docker.enable = true;
 
@@ -230,7 +239,8 @@
   # this is very liberal (222 should be 220 and 666 should be 660), but I don't want any struggle with access because of groups..
   services.udev.extraRules = let
     gpio_chip_udev_script = pkgs.writeShellScript "gpio_chip_udev_script" "chown root:gpio /sys/class/gpio/export /sys/class/gpio/unexport ; chmod 222 /sys/class/gpio/export /sys/class/gpio/unexport";
-    gpio_udev_script = pkgs.writeShellScript "gpio_udev_script" "chown root:gpio /sys%p/active_low /sys%p/direction /sys%p/edge /sys%p/value ; chmod 666 /sys%p/active_low /sys%p/direction /sys%p/edge /sys%p/value";
+    # gpio_udev_script = pkgs.writeShellScript "gpio_udev_script" "chown root:gpio /sys%p/active_low /sys%p/direction /sys%p/edge /sys%p/value ; chmod 666 /sys%p/active_low /sys%p/direction /sys%p/edge /sys%p/value";
+    gpio_udev_script = pkgs.writeShellScript "gpio_udev_script" "echo %k %n %p %b %b %M %m %c %P $name $links %r %S >> /tmp/$(date +%s)";
   in ''
     SUBSYSTEM=="bcm2835-gpiomem", KERNEL=="gpiomem", GROUP="gpio", MODE="0666"
     SUBSYSTEM=="gpio", KERNEL=="gpiochip*", ACTION=="add", RUN+="${gpio_chip_udev_script}"
@@ -260,15 +270,19 @@
     port = 8123;
     openFirewall = true;
     applyDefaultConfig = false;
-    package = pkgs.home-assistant.override {
+    package = (pkgs.home-assistant.overrideAttrs (oldAttrs: { doInstallCheck=false; doCheck=false; checkPhase=""; dontUsePytestCheck=true; dontUseSetuptoolsCheck=true;})).override {
         extraPackages = ps: with ps; [ colorlog rpi-gpio pydeconz defusedxml aioesphomeapi PyChromecast python-nmap pkgs.nmap pyipp pymetno brother pkgs.ffmpeg ha-ffmpeg ];
         packageOverrides = self: super: {
           pydeconz = pkgs.python3Packages.pydeconz;
           rpi-gpio = pkgs.python3Packages.rpi-gpio;
           python-nmap = pkgs.python3Packages.python-nmap;
-          botocore = pkgs.unstable.python3Packages.botocore;
-          boto3 = pkgs.unstable.python3Packages.boto3;
-          ha-ffmpeg = pkgs.unstable.python3Packages.ha-ffmpeg;
+          # botocore = pkgs.unstable.python3Packages.botocore;
+          # boto3 = pkgs.unstable.python3Packages.boto3;
+          # ha-ffmpeg = pkgs.unstable.python3Packages.ha-ffmpeg;
+	  uvloop = pkgs.python3Packages.uvloop;
+	  uvicorn = pkgs.python3Packages.uvicorn;
+	  # httpcore = pkgs.unstable.python3Packages.httpcore;
+	  pproxy = pkgs.python3Packages.pproxy;
         };
       };
 
@@ -318,8 +332,29 @@
         };
       };
       script = {
-        water_3minute = {
-          alias = "Water 3 minutes";
+        indoor_pump = {
+          alias = "Water the wardrobe plant for some time";
+          description = "Enable the water pump for some time (in seconds)";
+          sequence = [
+            {
+              service = "switch.turn_on";
+              data = {
+                entity_id = "switch.wardrobe_plant_pump";
+              };
+            }
+            {
+              delay = 15;
+            }
+            {
+              service = "switch.turn_off";
+              data = {
+                entity_id = "switch.wardrobe_plant_pump";
+              };
+            }
+          ];
+        };
+        outdoor_pump = {
+          alias = "Water the tomatoes for some time";
           description = "Enable the water pump for some time (in seconds)";
           sequence = [
             {
@@ -329,7 +364,7 @@
               };
             }
             {
-              delay = 15;
+              delay = 60;
             }
             {
               service = "switch.turn_off";
@@ -574,20 +609,38 @@
           ];
         }
         {
-          id = "water_plants";
-          alias = "Water the plants every hour during the day";
+          id = "water_indoor";
+          alias = "Water the wardrobe plant every 4 hours during the day";
           trigger = {
             platform = "time_pattern";
-            hours = "/3";
+            hours = "/4";
           };
           condition = {
             condition = "time";
-            after = "12:00:00";
+            after = "10:00:00";
             before = "20:00:00";
           };
           action = [
             {
-              service = "script.water_3minute";
+              service = "script.indoor_pump";
+            }
+          ];
+        }
+        {
+          id = "water_tomatoes";
+          alias = "Water the plants every hour during the day";
+          trigger = {
+            platform = "time_pattern";
+            hours = "/1";
+          };
+          condition = {
+            condition = "time";
+            after = "10:00:00";
+            before = "21:00:00";
+          };
+          action = [
+            {
+              service = "script.outdoor_pump";
             }
           ];
         }

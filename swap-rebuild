@@ -1,14 +1,16 @@
 #!/bin/sh
 
 if [ ! -f /tmp/swap ]; then
-	sudo fallocate -l 4G /tmp/swap
+	sudo fallocate -l 16G /tmp/swap
 	sudo mkswap /tmp/swap
 	sudo chmod 600 /tmp/swap
 fi
 
 sudo swapon /tmp/swap
 
-sudo nixos-rebuild switch
+sudo nixos-rebuild -j 1 switch  --upgrade
+sudo nix-env -p /nix/var/nix/profiles/system --delete-generations +2
+sudo nix-collect-garbage -d 
 
 sudo swapoff /tmp/swap
 
