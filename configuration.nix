@@ -153,7 +153,7 @@
     openssh.authorizedKeys.keys = [ "" ];
   };
   users.users.hass = {
-    extraGroups = [ "gpio" "dialout" ];
+    extraGroups = [ "gpio" "dialout" "audio" ];
   };
   virtualisation.docker.enable = true;
 
@@ -690,10 +690,10 @@
       switch = [{
         platform = "rpi_gpio";
         ports = {
-          "18" = "window_motor_enabled";
-          "15" = "window_pin_1";
-          "14" = "window_pin_2";
-          "23" = "ceiling_led_pin";
+          # "18" = "window_motor_enabled";
+          # "15" = "window_pin_1";
+          # "14" = "window_pin_2";
+          # "23" = "ceiling_led_pin";
         };
       } {
         platform = "template";

@@ -1,7 +1,7 @@
 esphome:
-    name: moroomwardrobe
-    platform: ESP8266
-    board: d1_mini
+  name: window
+  platform: ESP8266
+  board: d1
 
 wifi:
     ssid: "NotANetwork"
@@ -9,16 +9,15 @@ wifi:
 
     # Enable fallback hotspot (captive portal) in case wifi connection fails
     ap:
-        ssid: "Moroomwardrobe Fallback Hotspot"
-        password: "VynwNZN3glml"
+        ssid: "Window Fallback Hotspot"
+        password: "Hu6ymKtG4yaZ"
     manual_ip:
         # Set this to the IP of the ESP
-        static_ip: 192.168.0.11
+        static_ip: 192.168.0.147
         # Set this to the IP address of the router. Often ends with .1
         gateway: 192.168.0.1
         # The subnet of the network. 255.255.255.0 works for most home networks.
         subnet: 255.255.255.0
-
 captive_portal:
 
 # Enable logging
@@ -28,21 +27,18 @@ logger:
 api:
 
 ota:
-    
+
 switch:
     - platform: gpio
-      name: "Wardrobe light"
-      pin: 14
+      name: "window_pin_1"
+      pin: 16
     - platform: gpio
-      name: "Wardrobe plant pump"
-      pin: 5  # D1
-
-sensor:
-    - platform: dht
-      model: DHT22
-      pin: 13
-      temperature:
-          name: "Living Room Temperature"
-      humidity:
-          name: "Living Room Humidity"
-      update_interval: 15s
+      name: "window_pin_2"
+      pin: 5
+    - platform: gpio
+      name: "window_motor_enabled"
+      pin: 4
+    - platform: gpio
+      name: "ceiling_led_pin"
+      pin: 12  # D1
+      # id: wardrobe_pump
