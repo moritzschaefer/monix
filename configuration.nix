@@ -545,8 +545,8 @@
           ];
           condition =  {
             condition =  "time";
-            after = "12:30:00";  # TODO 22
-            before = "9:00:00";
+            after = "22:30:00";  # TODO 22
+            before = "7:00:00";
           };
           action =  [
             {
@@ -566,8 +566,8 @@
           ];
           condition =  {
             condition =  "time";
-            after = "12:30:00";  # TODO 22
-            before = "9:00:00";
+            after = "22:30:00";  # TODO 22
+            before = "6:50:00";
           };
           action =  [
             {
@@ -580,7 +580,7 @@
           alias =  "Close window in the night before asswhole tierspital starts making noise";
           trigger =  [
             {
-              at =  "5:35";
+              at =  "6:35";
               platform =  "time";
             }
           ];
@@ -603,7 +603,7 @@
           alias =  "Close window in the night before asswhole church starts making noise";
           trigger =  [
             {
-              at =  "8:30";
+              at =  "9:00";
               platform =  "time";
             }
           ];
