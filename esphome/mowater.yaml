@@ -33,6 +33,7 @@ switch:
   - platform: gpio
     name: "Water pump"
     pin: 14  # D5
+    id: pump
 
 # Example configuration entry
 binary_sensor:
@@ -43,7 +44,8 @@ binary_sensor:
     name: "Outdoor noise"
     device_class: sound
     filters: 
-      - delayed_off: 15s
+      - delayed_off: 100s
+      - delayed_on: 120ms
 
 sensor:
   - platform: dht
