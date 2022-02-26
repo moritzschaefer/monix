@@ -44,6 +44,7 @@ binary_sensor:
     device_class: sound
     filters: 
       - delayed_off: 15s
+      - delayed_on: 200ms
 
 sensor:
   - platform: dht

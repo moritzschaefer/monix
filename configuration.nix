@@ -109,8 +109,9 @@
   in [
     arp-scan nmap wget emacs tmux curl htop git myneovim mypython 
     ffmpeg
-    # nur.repos.mic92.rhasspy
+    # nur.repos.mic92.rhasspy  # just use docker for now :)
     usbutils pciutils libraspberrypi 
+    wireguard
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -129,7 +130,64 @@
     interfaces.eth0.useDHCP = true;
     wireless.enable = false; 
     networkmanager.enable = true;
+    nat = {  # NAT
+      enable = true;
+      externalInterface = "wlan0";
+      internalInterfaces = [ "wg0" ];
+    };
+    firewall.allowedUDPPorts = [ 51820 ];
+    firewall.allowedTCPPorts = [ 51821 ];
   };
+
+  networking.wireguard.interfaces = {
+    # "wg0" is the network interface name. You can name the interface arbitrarily.
+    wg0 = {
+      # Determines the IP address and subnet of the server's end of the tunnel interface.
+      ips = [ "10.100.0.1/24" ];
+
+      # The port that WireGuard listens to. Must be accessible by the client.
+      listenPort = 51820;
+
+      # This allows the wireguard server to route your traffic to the internet and hence be like a VPN
+      # For this to work you have to set the dnsserver IP of your router (or dnsserver of choice) in your clients
+      postSetup = ''
+        ${pkgs.iptables}/bin/iptables -t nat -A POSTROUTING -s 10.100.0.0/24 -o eth0 -j MASQUERADE
+      '';
+
+      # This undoes the above command
+      postShutdown = ''
+        ${pkgs.iptables}/bin/iptables -t nat -D POSTROUTING -s 10.100.0.0/24 -o eth0 -j MASQUERADE
+      '';
+
+      # Path to the private key file.
+      #
+      # Note: The private key can also be included inline via the privateKey option,
+      # but this makes the private key world-readable; thus, using privateKeyFile is
+      # recommended.
+      privateKeyFile = "/home/moritz/.wireguard/private_key";
+
+      peers = [
+        # List of allowed peers.
+        { # Feel free to give a meaning full name
+          # Public key of the peer (not a file path).
+          publicKey = "LhOd5UqzaHEmifssc0sJT6u7vUQvc2MmbjG22grHCW0=";
+          # List of IPs assigned to this peer within the tunnel subnet. Used to configure routing.
+          allowedIPs = [ "10.100.0.2/32" ];
+        }
+      ];
+    };
+  };
+  # DuckDNS
+  #
+  services.ddclient = {
+    enable = true;
+    domains = [ "moritzs.duckdns.org" ];
+    protocol = "duckdns";
+    server = "www.duckdns.org";
+    username = "nouser";
+    password = "e1b12312-5444-4c36-892f-a490ed4f3a4a";
+  };
+
   services.nscd.enable = true;
   services.avahi = {
     enable = true;
@@ -185,12 +243,12 @@
     password=(lib.strings.fileContents ./spotify_pass/password);
     config = pkgs.writeText "spotifyd.conf" ''
       [global]
-      username = ${username}
-      password = ${password}
+      username = "${username}"
+      password = "${password}"
       use_keyring = false
-      backend = pulseaudio
+      backend = "pulseaudio"
       bitrate = 160
-      device_name = Monix Pi
+      device_name = "Monix Pi"
       no_audio_cache = true
     '';
   in {
@@ -248,19 +306,19 @@
   '';
 
   # systemd.services.rhasspy = {
-  #   after = [ "network.target" ];
-  #   wantedBy = [ "multi-user.target" ];
-  #   # rhasspy sets `/dev/stdout` as log file for supervisord
-  #   # supervisord tries to open /dev/stdout and fails with the default systemd device
-  #   # it works for pipes so...
-  #   script = ''
-  #     ${pkgs.nur.repos.mic92.rhasspy}/bin/rhasspy --profile en | ${pkgs.utillinux}/bin/logger
-  #   '';
-  #   serviceConfig = {
-  #     User = "moritz";
-  #     # needed for pulseaudio
-  #     Environment = "XDG_RUNTIME_DIR=/run/user/1001"; # pi is 1000
-  #   };
+    # after = [ "network.target" ];
+    # wantedBy = [ "multi-user.target" ];
+    # # rhasspy sets `/dev/stdout` as log file for supervisord
+    # # supervisord tries to open /dev/stdout and fails with the default systemd device
+    # # it works for pipes so...
+    # script = ''
+      # ${pkgs.nur.repos.mic92.rhasspy}/bin/rhasspy --profile en | ${pkgs.utillinux}/bin/logger
+    # '';
+    # serviceConfig = {
+      # User = "moritz";
+      # # needed for pulseaudio
+      # Environment = "XDG_RUNTIME_DIR=/run/user/1001"; # pi is 1000
+    # };
   # };
   
 
@@ -294,7 +352,7 @@
         #}
 	{ 
 	  platform = "nmap_tracker";
-	  hosts = "192.168.0.222"; # I only need to check my phone..
+	  hosts = "192.168.0.206"; # I only need to check my phone..
 	  home_interval = 2;
         }
       ];
