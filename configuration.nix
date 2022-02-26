@@ -1,4 +1,4 @@
-# Edit this configuration file to define what should be installed on
+# Edit nthis configuration file to define what should be installed on
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
@@ -38,7 +38,7 @@
             # mic92 = import (builtins.fetchTarball "https://github.com/mweinelt/nur-packages-mic92/archive/master.tar.gz");
           };
         };
-        # unstable = unstable;
+        unstable = unstable;
         # lapack = unstable.lapack;
         # blas = unstable.blas;
         # openfst = unstable.openfst;
@@ -276,6 +276,16 @@
       device_name = Monix Pi
       no_audio_cache = true
   '';
+  };
+
+  # Syncthing
+  services.syncthing = {
+    enable = true;
+    package = pkgs.unstable.syncthing;
+    user = "moritz";
+    dataDir = "/home/moritz/.config/syncthing";
+    configDir = "/home/moritz/.config/syncthing";
+    openDefaultPorts = true;
   };
 
   # Enable the X11 windowing system.
