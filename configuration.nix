@@ -9,7 +9,9 @@
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
       ./homeassistant/main.nix  # deconz docker image (for now)
+      ./pihole-docker.nix
     ];
+
   # nixpkgs.config.packageOverrides = super: {
   # python3 = super.python3.override {
     # # Careful, we're using a different self and super here!
@@ -46,7 +48,7 @@
 	# glibc = unstable.glibc;
         # opengrm-ngram = unstable.opengrm-ngram;
         # home-assistant = unstable.home-assistant;
-        python3 = pkgs.python38;
+        python3 = pkgs.python39;
         python3Packages = pkgs.python3Packages;
 	#python = unstable.python3.override {    
             #packageOverrides = self: super: rec {
@@ -108,6 +110,7 @@
   mypython =  python3.withPackages (python-packages: [ python-packages.rpi-gpio python-packages.fritzconnection]);
   in [
     arp-scan nmap wget emacs tmux curl htop git myneovim mypython 
+    nodePackages.node-red
     ffmpeg
     # nur.repos.mic92.rhasspy  # just use docker for now :)
     usbutils pciutils libraspberrypi 
@@ -185,7 +188,7 @@
     protocol = "duckdns";
     server = "www.duckdns.org";
     username = "nouser";
-    password = "e1b12312-5444-4c36-892f-a490ed4f3a4a";
+    passwordFile = "/root/duckdns_password";
   };
 
   services.nscd.enable = true;
@@ -236,6 +239,9 @@
   boot.loader.raspberryPi.firmwareConfig = ''
     dtparam=audio=on
   '';
+  boot.loader.systemd-boot.configurationLimit = 1;
+  boot.loader.grub.configurationLimit = 1;
+  nix.gc.automatic = true;
   sound.extraConfig = (builtins.readFile ./asound.conf);  # combine microphones..
   systemd.packages = [ pkgs.spotifyd ];
   systemd.user.services.spotifyd = let
@@ -337,7 +343,6 @@
     enable = true;
     port = 8123;
     openFirewall = true;
-    applyDefaultConfig = false;
     package = (pkgs.home-assistant.overrideAttrs (oldAttrs: { doInstallCheck=false; doCheck=false; checkPhase=""; dontUsePytestCheck=true; dontUseSetuptoolsCheck=true;})).override {
         extraPackages = ps: with ps; [ colorlog rpi-gpio pydeconz defusedxml aioesphomeapi PyChromecast python-nmap pkgs.nmap pyipp pymetno brother pkgs.ffmpeg ha-ffmpeg ];
         packageOverrides = self: super: {
@@ -840,9 +845,9 @@
 
       homeassistant = {
         name = "Home";
-        time_zone = "Europe/Zurich"; 
-        latitude = 47.401092299999995; 
-        longitude = 8.5537682;
+        time_zone = "Europe/Vienna"; 
+        latitude = 48.23057;
+        longitude = 16.35309;
         elevation = 473;
         unit_system = "metric";
         temperature_unit = "C";

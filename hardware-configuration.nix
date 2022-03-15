@@ -17,6 +17,12 @@
     { device = "/dev/disk/by-uuid/44444444-4444-4444-8888-888888888888";
       fsType = "ext4";
     };
+# 3.5" HDD in fast-swappable case
+  fileSystems."/mnt/hdd3tb" =
+    { device = "/dev/disk/by-uuid/f6037d88-f54a-4632-bd9f-a296486fc9bc";
+      fsType = "ext4";
+      options = [ "nofail" ];
+    };
 
   fileSystems."/boot" =
     { device = "/dev/disk/by-uuid/2178-694E";

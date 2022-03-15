@@ -8,9 +8,9 @@ fi
 
 sudo swapon /tmp/swap
 
-sudo nixos-rebuild -j 1 switch  --upgrade
-sudo nix-env -p /nix/var/nix/profiles/system --delete-generations +2
-sudo nix-collect-garbage -d 
+sudo nixos-rebuild -j 1 switch # --upgrade
+# sudo nix-env -p /nix/var/nix/profiles/system --delete-generations +2
+# sudo nix-collect-garbage -d 
 
 sudo swapoff /tmp/swap
 
