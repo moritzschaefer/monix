@@ -1,7 +1,7 @@
 # could also use dnsmasq (see here: https://github.com/NixOS/nixpkgs/issues/61617) 
 { config, ... }:
 {
-  config.docker-containers.pihole = let serverIP = "192.168.0.10"; in {
+  config.virtualisation.oci-containers.containers.pihole = let serverIP = "192.168.0.10"; in {
     image = "pihole/pihole:latest";
     ports = [
       "${serverIP}:53:53/tcp"
@@ -16,7 +16,7 @@
     environment = {
       ServerIP = serverIP;
     };
-    extraDockerOptions = [
+    extraOptions = [
       "--cap-add=NET_ADMIN"
       "--dns=127.0.0.1"
       "--dns=1.1.1.1"
