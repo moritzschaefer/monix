@@ -1,16 +1,18 @@
 #!/bin/sh
 
-if [ ! -f /tmp/swap ]; then
-	sudo fallocate -l 16G /tmp/swap
-	sudo mkswap /tmp/swap
-	sudo chmod 600 /tmp/swap
+SWAP_FILE=/swapfile
+
+if [ ! -f $SWAP_FILE ]; then
+	sudo fallocate -l 16G $SWAP_FILE
+	sudo mkswap $SWAP_FILE
+	sudo chmod 600 $SWAP_FILE
 fi
 
-sudo swapon /tmp/swap
+sudo swapon $SWAP_FILE
 
-# sudo nix-env -p /nix/var/nix/profiles/system --delete-generations +2
-# sudo nix-collect-garbage -d 
-sudo nixos-rebuild -j 1 boot # --upgrade
+sudo nix-env -p /nix/var/nix/profiles/system --delete-generations +1
+sudo nix-collect-garbage -d 
+sudo nixos-rebuild -j 1 switch --upgrade
 
-sudo swapoff /tmp/swap
+sudo swapoff $SWAP_FILE
 

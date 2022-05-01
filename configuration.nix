@@ -15,24 +15,6 @@
       ./network/samba.nix
     ];
 
-  # nixpkgs.config.packageOverrides = super: {
-  # python3 = super.python3.override {
-    # # Careful, we're using a different self and super here!
-    # packageOverrides = self: super: {
-      # pydeconz = super.buildPythonPackage rec {
-        # pname = "pydeconz";
-        # version = "71";
-        # # name = "${pname}-${version}";
-        # propagatedBuildInputs = [ super.pythonPackages.aiohttp ];
-        # doCheck = false;
-        # src = super.fetchPypi {
-          # inherit pname version;
-          # sha256 = "cd7436779296ab259c1e3e02d639a5d6aa7eca300afb03bb5553a787b27e324c";
-        # };
-      # };
-    # };
-  # };
-  # };
   nixpkgs.config.packageOverrides = 
     let unstable = import <nixos-unstable>  { config = { allowUnfree = true; }; };
     in
@@ -166,7 +148,7 @@ hdmi_mode:0=100'';
     ffmpeg
     # nur.repos.mic92.rhasspy  # just use docker for now :)
     usbutils pciutils libraspberrypi 
-    wireguard
+    wireguard-tools
   ];
 
   # Some programs need SUID wrappers, can be configured further or are

@@ -23,6 +23,12 @@
       fsType = "ext4";
       options = [ "nofail" ];
     };
+# 2.5" SSD ugreen
+  fileSystems."/mnt/sdd2tb" =
+    { device = "/dev/disk/by-uuid/44d8f482-0ab4-4184-8941-1cf3969c298c";
+      fsType = "ext4";
+      options = [ "nofail" ];
+    };
 
   fileSystems."/boot" =
     { device = "/dev/disk/by-uuid/2178-694E";
