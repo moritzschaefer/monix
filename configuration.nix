@@ -7,13 +7,20 @@
 {
   imports =
     [ # Include the results of the hardware scan.
+      # <nixos-hardware/raspberry-pi/4>  # maybe needed for sound? also see hardware.raspberry-pi."4" ... below
       ./hardware-configuration.nix
       ./docker/deconz.nix  # deconz for home-assistant
       ./docker/cloudmacs.nix
       ./docker/pihole.nix
+      ./docker/rhasspy.nix
       ./homeassistant/default.nix
       ./network/samba.nix
+      ./borg.nix
+      ./plex.nix
+      ./kodi.nix
+      ./nature_filter/service.nix
     ];
+  nixpkgs.config.allowUnfree = true;
 
   nixpkgs.config.packageOverrides = 
     let unstable = import <nixos-unstable>  { config = { allowUnfree = true; }; };
@@ -69,18 +76,20 @@
         "console=tty1"
         # A lot GUI programs need this, nearly all wayland applications
         "cma=128M"
+        "snd_bcm2835.enable_headphones=1"
+        "snd_bcm2835.enable_hdmi=1" # Add these two to enable HDMI sound
+        "snd_bcm2835.enable_compat_alsa=0"
     ];
-    
 
     loader = {
       grub.enable = false;
       raspberryPi = {
         enable = true;
         version = 4;
-	uboot = {
-	  # enable = true;  # either its enabled or not. idk...
-	  configurationLimit = 1;
-	};
+      uboot = {
+        # enable = true;  # either its enabled or not. idk...
+        configurationLimit = 1;
+      };
         firmwareConfig = ''
 
 # Enable sound or so...
@@ -91,13 +100,18 @@ hdmi_force_hotplug=1
 # HDMI auch ohne Monitor in Betrieb nehmen (optional)
 hdmi_force_hotplug=1
 # Audio über HDMI ausgeben (optional)
-hdmi_drive=2
+# hdmi_drive=2
 # CEA-Betriebsmodus aktivieren (CEA=1, 4K/30=100)
 hdmi_group:0=1
 hdmi_mode:0=100'';
       };
     };
   };
+  # hardware.raspberry-pi."4" = {
+  #   fkms-3d.enable = true;
+  #   audio.enable = true;
+  #   dwc2.enable = true;
+  # };
 
   hardware.bluetooth.enable = true;
   # Use the GRUB 2 boot loader.
@@ -149,6 +163,7 @@ hdmi_mode:0=100'';
     # nur.repos.mic92.rhasspy  # just use docker for now :)
     usbutils pciutils libraspberrypi 
     wireguard-tools
+    ncdu
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -173,7 +188,7 @@ hdmi_mode:0=100'';
       internalInterfaces = [ "wg0" ];
     };
     firewall.allowedUDPPorts = [ 51820 ];
-    firewall.allowedTCPPorts = [ 51821 8384 ];  # syncthing as well
+    firewall.allowedTCPPorts = [ 51821 8384 21 ];  # syncthing as well, and FTP
   };
 
   networking.wireguard.interfaces = {
@@ -207,7 +222,7 @@ hdmi_mode:0=100'';
         # List of allowed peers.
         { # Feel free to give a meaning full name
           # Public key of the peer (not a file path).
-          publicKey = "LhOd5UqzaHEmifssc0sJT6u7vUQvc2MmbjG22grHCW0=";
+          publicKey = "jt+CtENSgKth7oXAmbb/jEyhtovwIz1RJIp5eWXIkz8=";
           # List of IPs assigned to this peer within the tunnel subnet. Used to configure routing.
           allowedIPs = [ "10.100.0.2/32" ];
         }
@@ -224,6 +239,35 @@ hdmi_mode:0=100'';
     username = "nouser";
     passwordFile = "/root/duckdns_password";
   };
+
+  services.nature_filter = {
+    enable = false; # feedly fucks
+  };
+
+
+  # FTP server
+  services.vsftpd = {
+    enable = false;
+#   cannot chroot && write
+#    chrootlocalUser = true;
+    writeEnable = true;
+    localUsers = true;
+    userlist = [ "moritz" ];
+    anonymousUserHome = "/mnt/hdd3tb/ftp_anon/";
+    userlistEnable = true;
+    anonymousUser = true;
+    anonymousUploadEnable = true;
+    anonymousMkdirEnable = true;
+  };
+  # networking.firewall.allowedTCPPorts = [ 21 ]; # defined elsewhere
+  services.vsftpd.extraConfig = ''
+	  pasv_enable=Yes
+	  pasv_min_port=51000
+	  pasv_max_port=51800
+	  '';
+  networking.firewall.allowedTCPPortRanges = [ { from = 51000; to = 51800; } ];
+
+
 
   services.nscd.enable = true;
   services.avahi = {
@@ -268,7 +312,10 @@ hdmi_mode:0=100'';
 
   # Enable sound.
   sound.enable = true;
-  hardware.pulseaudio.enable = true;
+  hardware.pulseaudio = {
+    enable = true;
+    package = pkgs.pulseaudioFull;
+  };
   nixpkgs.config.pulseaudio = true;
 
 

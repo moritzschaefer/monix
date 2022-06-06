@@ -1,13 +1,27 @@
 { lib, config, pkgs, options, ... }:
 
 {
+  services.postgresql = {
+    enable = true;
+    ensureDatabases = [ "hass" ];
+    ensureUsers = [{
+      name = "hass";
+      ensurePermissions = {
+        "DATABASE hass" = "ALL PRIVILEGES";
+      };
+    }];
+  };
+  services.postgresqlBackup = {
+    enable = true;
+    startAt = "*-*-* 23:00:00";  # Start before borg (which is at 12)
+  };
   services.home-assistant = {
     configWritable = true;
     enable = true;
     # config.http.server_port = 8123;
     openFirewall = true;
     package = (pkgs.home-assistant.overrideAttrs (oldAttrs: { doInstallCheck=false; doCheck=false; checkPhase=""; dontUsePytestCheck=true; dontUseSetuptoolsCheck=true;})).override {
-        extraPackages = ps: with ps; [ colorlog rpi-gpio pydeconz defusedxml aioesphomeapi PyChromecast python-nmap pkgs.nmap pyipp pymetno brother pkgs.ffmpeg ha-ffmpeg ];
+        extraPackages = ps: with ps; [ colorlog rpi-gpio pydeconz defusedxml aioesphomeapi PyChromecast python-nmap pkgs.nmap pyipp pymetno brother pkgs.ffmpeg ha-ffmpeg psycopg2 ];
         packageOverrides = self: super: {
           pydeconz = pkgs.python3Packages.pydeconz;
           rpi-gpio = pkgs.python3Packages.rpi-gpio;
@@ -27,18 +41,20 @@
 
     config = {
       default_config = {};
+      backup = {};
       wake_on_lan = {};
+      recorde.db_url = "postgresql://@/hass";
       device_tracker = [
         #{
           #platform = "bluetooth_tracker";
         #}
-	{ 
+	{
 	  platform = "nmap_tracker";
 	  hosts = "192.168.0.220"; # I only need to check my phone..
 	  home_interval = 2;
         }
       ];
-      
+
       light = [
         {
         platform = "switch";

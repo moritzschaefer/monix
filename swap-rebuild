@@ -12,7 +12,7 @@ sudo swapon $SWAP_FILE
 
 sudo nix-env -p /nix/var/nix/profiles/system --delete-generations +1
 sudo nix-collect-garbage -d 
-sudo nixos-rebuild -j 1 switch --upgrade
+sudo nixos-rebuild -j 1 switch # --upgrade
 
 sudo swapoff $SWAP_FILE
 
