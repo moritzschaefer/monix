@@ -16,7 +16,7 @@
       volumes = [
         "/home/moritz/dotfiles/home/.spacemacs.d:/home/emacs/.spacemacs.d"
         "/home/moritz/.cloudmacs.d:/home/emacs/.emacs.d"
-        "/home/moritz/wiki:/home/emacs/wiki"
+        "/mnt/sdd2tb/wiki:/home/emacs/wiki"
       ];
     };
   }; 
