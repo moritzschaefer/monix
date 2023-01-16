@@ -42,7 +42,22 @@ in {
     config = lib.mkIf cfg.enable {
         # Open selected port in the firewall.
         # We can reference the port that the user configured.
-        networking.firewall.allowedTCPPorts = [ 9999 ]; # cfg.port
+        networking.firewall.allowedTCPPorts = [ 80 443 ]; # cfg.port
+	services.nginx = {
+	    recommendedProxySettings = true;
+            recommendedTlsSettings = true;
+	    enable = true;
+	};
+	security.acme.acceptTerms = true;
+	security.acme.defaults.email = "mollitz@gmail.com";
+	services.nginx.virtualHosts."moritzs.duckdns.org" = {
+          enableACME = true;
+          forceSSL = false;  # should set to true after let's encrypt works
+          locations."/" = {
+            proxyPass = "http://127.0.0.1:9999";
+            proxyWebsockets = false; # needed if you need to use WebSocket
+          };
+        };
 
         # Describe the systemd service file
         systemd.services.nature_filter = {

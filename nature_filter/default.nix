@@ -15,7 +15,7 @@ let
   f = { buildPythonPackage, click, feedparser, flask, requests, feedgen }:
     buildPythonPackage rec {
       pname = "nature_filter";
-      version = "0.1.1";
+      version = "0.1.3";
 
       # If you have your sources locally, you can specify a path
       #src = /home/stigok/src/nature_filter
@@ -25,7 +25,7 @@ let
       src = builtins.fetchGit {
         url = "https://github.com/moritzschaefer/nature_filter.git";
         ref = "main";
-        rev = "43f5da9879a1606e525b7a9672ed698d9beb232b";
+	rev = "79bc308caddde76ddd5ad7ae506b875079c7977b";
       };
 
       # Specify runtime dependencies for the package

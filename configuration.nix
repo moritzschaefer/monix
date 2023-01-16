@@ -10,13 +10,13 @@
       # <nixos-hardware/raspberry-pi/4>  # maybe needed for sound? also see hardware.raspberry-pi."4" ... below
       ./hardware-configuration.nix
       ./docker/deconz.nix  # deconz for home-assistant
-      ./docker/cloudmacs.nix
+      # ./docker/cloudmacs.nix
       ./docker/pihole.nix
       ./docker/rhasspy.nix
       ./homeassistant/default.nix
       ./network/samba.nix
       ./borg.nix
-      ./plex.nix
+      # ./plex.nix
       ./kodi.nix
       ./nature_filter/service.nix
     ];
@@ -66,6 +66,21 @@
       min-free = ${toString (100 * 1024 * 1024)}
       max-free = ${toString (1024 * 1024 * 1024)}
     '';
+    # settings = {
+      # substituters = [
+        # "https://nix-community.cachix.org"
+      # ];
+      # trusted-public-keys = [
+        # "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      # ];
+    # };
+  binaryCaches = [
+      "https://nix-community.cachix.org"
+    ];
+    binaryCachePublicKeys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ]; 
+
   };
   boot = {
     kernelPackages = pkgs.linuxPackages_rpi4;
@@ -156,14 +171,16 @@ hdmi_mode:0=100'';
       };
     }
   ); 
+
   mypython =  python3.withPackages (python-packages: [ python-packages.rpi-gpio python-packages.fritzconnection]);
   in [
-    arp-scan nmap wget emacs tmux curl htop git myneovim mypython 
+    arp-scan nmap wget emacs tmux curl htop git myneovim mypython conda
     ffmpeg
     # nur.repos.mic92.rhasspy  # just use docker for now :)
     usbutils pciutils libraspberrypi 
     wireguard-tools
     ncdu
+    gst_all_1.gstreamer gst_all_1.gst-plugins-base gst_all_1.gst-plugins-good gst_all_1.gst-plugins-ugly  gst_all_1.gst-plugins-bad
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -188,7 +205,7 @@ hdmi_mode:0=100'';
       internalInterfaces = [ "wg0" ];
     };
     firewall.allowedUDPPorts = [ 51820 ];
-    firewall.allowedTCPPorts = [ 51821 8384 21 ];  # syncthing as well, and FTP
+    firewall.allowedTCPPorts = [ 51821 8384 21 5000 ];  # syncthing as well, and FTP; and 5000 for vispr
   };
 
   networking.wireguard.interfaces = {
@@ -241,7 +258,7 @@ hdmi_mode:0=100'';
   };
 
   services.nature_filter = {
-    enable = false; # feedly fucks
+   enable = true; # feedly fucks
   };
 
 
@@ -360,6 +377,28 @@ hdmi_mode:0=100'';
       no_audio_cache = true
   '';
   };
+
+  # systemd for streamign microphones to rhasspy
+  systemd.services.gstreamer-rhasspy = {
+      enable = false;
+      wantedBy = [ "multi-user.target" ];
+      path = [ pkgs.gst_all_1.gstreamer ]; # pkgs.gst_all_1.gst-plugins-good pkgs.gst_all_1.gst-plugins-base ];
+
+      script = "gst-launch-1.0 alsasrc device=merged_mono !     audioconvert !   audioresample  ! audio/x-raw, rate=16000, channels=1, format=S16LE !         udpsink host=127.0.0.1 port=11111";
+      # scriptArgs = "";
+      # restart = "always";
+      after = [ "network-online.target" "sound.target" ];
+      environment = {
+        "GST_PLUGIN_SYSTEM_PATH_1_0" = "/nix/store/pnwdsa9xc0gbf6i9imacrpaavziz4sdh-gstreamer-1.20.0/lib/gstreamer-1.0:/run/current-system/sw/lib/gstreamer-1.0"; # TODO hardcoded path is of course stupid...
+      };
+      serviceConfig = {
+        # ExecStart = "${pkgs.gst_all_1.gstreamer}/bin/gst-launch-1.0 alsasrc device=merged_mono !     audioconvert !   audioresample  ! audio/x-raw, rate=16000, channels=1, format=S16LE !         udpsink host=127.0.0.1 port=11111";
+        Restart = "always";
+        RestartSec = 12;
+      };
+  };
+
+
 
   # Syncthing
   services.syncthing = {
