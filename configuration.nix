@@ -7,27 +7,21 @@
 {
   imports =
     [ # Include the results of the hardware scan.
+      # <nixos-hardware/raspberry-pi/4>  # maybe needed for sound? also see hardware.raspberry-pi."4" ... below
       ./hardware-configuration.nix
-      ./homeassistant/main.nix  # deconz docker image (for now)
+      # ./docker/deconz.nix  # deconz for home-assistant
+      # ./docker/cloudmacs.nix
+      # ./docker/pihole.nix
+      # ./docker/rhasspy.nix
+      # ./homeassistant/default.nix
+      # ./network/samba.nix
+      ./borg.nix
+      # ./plex.nix
+      # ./kodi.nix
+      # ./nature_filter/service.nix  # enabled below
     ];
-  # nixpkgs.config.packageOverrides = super: {
-  # python3 = super.python3.override {
-    # # Careful, we're using a different self and super here!
-    # packageOverrides = self: super: {
-      # pydeconz = super.buildPythonPackage rec {
-        # pname = "pydeconz";
-        # version = "71";
-        # # name = "${pname}-${version}";
-        # propagatedBuildInputs = [ super.pythonPackages.aiohttp ];
-        # doCheck = false;
-        # src = super.fetchPypi {
-          # inherit pname version;
-          # sha256 = "cd7436779296ab259c1e3e02d639a5d6aa7eca300afb03bb5553a787b27e324c";
-        # };
-      # };
-    # };
-  # };
-  # };
+  nixpkgs.config.allowUnfree = true;
+
   nixpkgs.config.packageOverrides = 
     let unstable = import <nixos-unstable>  { config = { allowUnfree = true; }; };
     in
@@ -46,7 +40,7 @@
 	# glibc = unstable.glibc;
         # opengrm-ngram = unstable.opengrm-ngram;
         # home-assistant = unstable.home-assistant;
-        python3 = pkgs.python38;
+        python3 = pkgs.python39;
         python3Packages = pkgs.python3Packages;
 	#python = unstable.python3.override {    
             #packageOverrides = self: super: rec {
@@ -56,11 +50,83 @@
         #};
       };
 
-  nixpkgs.overlays = [ (import ./overlays/python-packages.nix) ];
-  boot.loader.grub.enable = false;
-  boot.loader.raspberryPi.enable = true;
-  boot.loader.raspberryPi.version = 4;
-  boot.kernelPackages = pkgs.linuxPackages_rpi4;
+  nixpkgs.overlays = [  ]; # import ./overlays/python-packages.nix) ];
+  hardware.enableRedistributableFirmware = true;
+
+  
+  nix = {
+    autoOptimiseStore = true;
+    gc = {
+      automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 30d";
+    };
+    # Free up to 1GiB whenever there is less than 100MiB left.
+    extraOptions = ''
+      min-free = ${toString (100 * 1024 * 1024)}
+      max-free = ${toString (1024 * 1024 * 1024)}
+    '';
+    # settings = {
+      # substituters = [
+        # "https://nix-community.cachix.org"
+      # ];
+      # trusted-public-keys = [
+        # "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      # ];
+    # };
+  binaryCaches = [
+      "https://nix-community.cachix.org"
+    ];
+    binaryCachePublicKeys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ]; 
+
+  };
+  boot = {
+    kernelPackages = pkgs.linuxPackages_rpi4;
+    tmpOnTmpfs = true;
+    kernelParams = [
+        "8250.nr_uarts=1"
+        "console=ttyAMA0,115200"
+        "console=tty1"
+        # A lot GUI programs need this, nearly all wayland applications
+        "cma=128M"
+        "snd_bcm2835.enable_headphones=1"
+        "snd_bcm2835.enable_hdmi=1" # Add these two to enable HDMI sound
+        "snd_bcm2835.enable_compat_alsa=0"
+    ];
+
+    loader = {
+      grub.enable = false;
+      raspberryPi = {
+        enable = true;
+        version = 4;
+      uboot = {
+        # enable = true;  # either its enabled or not. idk...
+        configurationLimit = 1;
+      };
+        firmwareConfig = ''
+
+# Enable sound or so...
+dtparam=audio=on
+# hdmi_ignore_edid=0xa5000080 (only required for shity chinese TVs) 
+disable_overscan=1
+hdmi_force_hotplug=1
+# HDMI auch ohne Monitor in Betrieb nehmen (optional)
+hdmi_force_hotplug=1
+# Audio über HDMI ausgeben (optional)
+# hdmi_drive=2
+# CEA-Betriebsmodus aktivieren (CEA=1, 4K/30=100)
+hdmi_group:0=1
+hdmi_mode:0=100'';
+      };
+    };
+  };
+  # hardware.raspberry-pi."4" = {
+  #   fkms-3d.enable = true;
+  #   audio.enable = true;
+  #   dwc2.enable = true;
+  # };
 
   hardware.bluetooth.enable = true;
   # Use the GRUB 2 boot loader.
@@ -105,12 +171,17 @@
       };
     }
   ); 
-  mypython =  python3.withPackages (python-packages: [ python-packages.rpi-gpio python-packages.fritzconnection]);
+
+  # python-packages.rpi-gpio 
+  mypython =  python3.withPackages (python-packages: [ python-packages.fritzconnection]);
   in [
-    arp-scan nmap wget emacs tmux curl htop git myneovim mypython 
+    arp-scan nmap wget emacs tmux curl htop git myneovim mypython conda
     ffmpeg
-    # nur.repos.mic92.rhasspy
+    # nur.repos.mic92.rhasspy  # just use docker for now :)
     usbutils pciutils libraspberrypi 
+    wireguard-tools
+    ncdu
+    gst_all_1.gstreamer gst_all_1.gst-plugins-base gst_all_1.gst-plugins-good gst_all_1.gst-plugins-ugly
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -129,7 +200,93 @@
     interfaces.eth0.useDHCP = true;
     wireless.enable = false; 
     networkmanager.enable = true;
+    nat = {  # NAT
+      enable = true;
+      externalInterface = "wlan0";
+      internalInterfaces = [ "wg0" ];
+    };
+    firewall.allowedUDPPorts = [ 51820 ];
+    firewall.allowedTCPPorts = [ 51821 8384 21 5000 ];  # syncthing as well, and FTP; and 5000 for vispr
   };
+
+  networking.wireguard.interfaces = {
+    # "wg0" is the network interface name. You can name the interface arbitrarily.
+    wg0 = {
+      # Determines the IP address and subnet of the server's end of the tunnel interface.
+      ips = [ "10.100.0.1/24" ];
+
+      # The port that WireGuard listens to. Must be accessible by the client.
+      listenPort = 51820;
+
+      # This allows the wireguard server to route your traffic to the internet and hence be like a VPN
+      # For this to work you have to set the dnsserver IP of your router (or dnsserver of choice) in your clients
+      postSetup = ''
+        ${pkgs.iptables}/bin/iptables -t nat -A POSTROUTING -s 10.100.0.0/24 -o eth0 -j MASQUERADE
+      '';
+
+      # This undoes the above command
+      postShutdown = ''
+        ${pkgs.iptables}/bin/iptables -t nat -D POSTROUTING -s 10.100.0.0/24 -o eth0 -j MASQUERADE
+      '';
+
+      # Path to the private key file.
+      #
+      # Note: The private key can also be included inline via the privateKey option,
+      # but this makes the private key world-readable; thus, using privateKeyFile is
+      # recommended.
+      privateKeyFile = "/home/moritz/.wireguard/private_key";
+
+      peers = [
+        # List of allowed peers.
+        { # Feel free to give a meaning full name
+          # Public key of the peer (not a file path).
+          publicKey = "jt+CtENSgKth7oXAmbb/jEyhtovwIz1RJIp5eWXIkz8=";
+          # List of IPs assigned to this peer within the tunnel subnet. Used to configure routing.
+          allowedIPs = [ "10.100.0.2/32" ];
+        }
+      ];
+    };
+  };
+  # DuckDNS
+  #
+  services.ddclient = {
+    enable = true;
+    domains = [ "moritzs.duckdns.org" ];
+    protocol = "duckdns";
+    server = "www.duckdns.org";
+    username = "nouser";
+    passwordFile = "/root/duckdns_password";
+  };
+
+  # services.nature_filter = {
+   # enable = true; # feedly fucks
+  # };
+
+
+  # FTP server
+  services.vsftpd = {
+    enable = false;
+#   cannot chroot && write
+#    chrootlocalUser = true;
+    writeEnable = true;
+    localUsers = true;
+    userlist = [ "moritz" ];
+    anonymousUserHome = "/mnt/hdd3tb/ftp_anon/";
+    userlistEnable = true;
+    anonymousUser = true;
+    anonymousUploadEnable = true;
+    anonymousMkdirEnable = true;
+  };
+  # networking.firewall.allowedTCPPorts = [ 21 ]; # defined elsewhere
+  services.vsftpd.extraConfig = ''
+	  pasv_enable=Yes
+	  pasv_min_port=51000
+	  pasv_max_port=51800
+	  '';
+  networking.firewall.allowedTCPPortRanges = [ { from = 51000; to = 51800; } ];
+
+
+
   services.nscd.enable = true;
   services.avahi = {
     enable = true;
@@ -152,9 +309,6 @@
     extraGroups = [ "wheel" "networkmanager" "dialout" "docker" "gpio" "audio" ];
     openssh.authorizedKeys.keys = [ "" ];
   };
-  users.users.hass = {
-    extraGroups = [ "gpio" "dialout" "audio" ];
-  };
   virtualisation.docker.enable = true;
 
   # List services that you want to enable:
@@ -173,11 +327,13 @@
 
   # Enable sound.
   sound.enable = true;
-  hardware.pulseaudio.enable = true;
-  nixpkgs.config.pulseaudio = true;
-  boot.loader.raspberryPi.firmwareConfig = ''
-    dtparam=audio=on
-  '';
+  # hardware.pulseaudio = {
+    # enable = true;
+    # package = pkgs.pulseaudioFull;
+  # };
+  # nixpkgs.config.pulseaudio = true;
+
+
   sound.extraConfig = (builtins.readFile ./asound.conf);  # combine microphones..
   systemd.packages = [ pkgs.spotifyd ];
   systemd.user.services.spotifyd = let
@@ -185,12 +341,12 @@
     password=(lib.strings.fileContents ./spotify_pass/password);
     config = pkgs.writeText "spotifyd.conf" ''
       [global]
-      username = ${username}
-      password = ${password}
+      username = "${username}"
+      password = "${password}"
       use_keyring = false
-      backend = pulseaudio
+      backend = "pulseaudio"
       bitrate = 160
-      device_name = Monix Pi
+      device_name = "Monix Pi"
       no_audio_cache = true
     '';
   in {
@@ -220,12 +376,35 @@
   '';
   };
 
+  # systemd for streamign microphones to rhasspy
+  systemd.services.gstreamer-rhasspy = {
+      enable = false;
+      wantedBy = [ "multi-user.target" ];
+      path = [ pkgs.gst_all_1.gstreamer ]; # pkgs.gst_all_1.gst-plugins-good pkgs.gst_all_1.gst-plugins-base ];
+
+      script = "gst-launch-1.0 alsasrc device=merged_mono !     audioconvert !   audioresample  ! audio/x-raw, rate=16000, channels=1, format=S16LE !         udpsink host=127.0.0.1 port=11111";
+      # scriptArgs = "";
+      # restart = "always";
+      after = [ "network-online.target" "sound.target" ];
+      environment = {
+        "GST_PLUGIN_SYSTEM_PATH_1_0" = "/nix/store/pnwdsa9xc0gbf6i9imacrpaavziz4sdh-gstreamer-1.20.0/lib/gstreamer-1.0:/run/current-system/sw/lib/gstreamer-1.0"; # TODO hardcoded path is of course stupid...
+      };
+      serviceConfig = {
+        # ExecStart = "${pkgs.gst_all_1.gstreamer}/bin/gst-launch-1.0 alsasrc device=merged_mono !     audioconvert !   audioresample  ! audio/x-raw, rate=16000, channels=1, format=S16LE !         udpsink host=127.0.0.1 port=11111";
+        Restart = "always";
+        RestartSec = 12;
+      };
+  };
+
+
+
   # Syncthing
   services.syncthing = {
     enable = true;
+    guiAddress="0.0.0.0:8384";
     package = pkgs.unstable.syncthing;
     user = "moritz";
-    dataDir = "/home/moritz/.config/syncthing";
+    dataDir = "/home/moritz/Syncthing";
     configDir = "/home/moritz/.config/syncthing";
     openDefaultPorts = true;
   };
@@ -258,553 +437,28 @@
   '';
 
   # systemd.services.rhasspy = {
-  #   after = [ "network.target" ];
-  #   wantedBy = [ "multi-user.target" ];
-  #   # rhasspy sets `/dev/stdout` as log file for supervisord
-  #   # supervisord tries to open /dev/stdout and fails with the default systemd device
-  #   # it works for pipes so...
-  #   script = ''
-  #     ${pkgs.nur.repos.mic92.rhasspy}/bin/rhasspy --profile en | ${pkgs.utillinux}/bin/logger
-  #   '';
-  #   serviceConfig = {
-  #     User = "moritz";
-  #     # needed for pulseaudio
-  #     Environment = "XDG_RUNTIME_DIR=/run/user/1001"; # pi is 1000
-  #   };
+    # after = [ "network.target" ];
+    # wantedBy = [ "multi-user.target" ];
+    # # rhasspy sets `/dev/stdout` as log file for supervisord
+    # # supervisord tries to open /dev/stdout and fails with the default systemd device
+    # # it works for pipes so...
+    # script = ''
+      # ${pkgs.nur.repos.mic92.rhasspy}/bin/rhasspy --profile en | ${pkgs.utillinux}/bin/logger
+    # '';
+    # serviceConfig = {
+      # User = "moritz";
+      # # needed for pulseaudio
+      # Environment = "XDG_RUNTIME_DIR=/run/user/1001"; # pi is 1000
+    # };
   # };
   
 
-  services.home-assistant = {
-    configWritable = true;
+  services.node-red = {
     enable = true;
-    port = 8123;
     openFirewall = true;
-    applyDefaultConfig = false;
-    package = (pkgs.home-assistant.overrideAttrs (oldAttrs: { doInstallCheck=false; doCheck=false; checkPhase=""; dontUsePytestCheck=true; dontUseSetuptoolsCheck=true;})).override {
-        extraPackages = ps: with ps; [ colorlog rpi-gpio pydeconz defusedxml aioesphomeapi PyChromecast python-nmap pkgs.nmap pyipp pymetno brother pkgs.ffmpeg ha-ffmpeg ];
-        packageOverrides = self: super: {
-          pydeconz = pkgs.python3Packages.pydeconz;
-          rpi-gpio = pkgs.python3Packages.rpi-gpio;
-          python-nmap = pkgs.python3Packages.python-nmap;
-          # botocore = pkgs.unstable.python3Packages.botocore;
-          # boto3 = pkgs.unstable.python3Packages.boto3;
-          # ha-ffmpeg = pkgs.unstable.python3Packages.ha-ffmpeg;
-	  uvloop = pkgs.python3Packages.uvloop;
-	  uvicorn = pkgs.python3Packages.uvicorn;
-	  # httpcore = pkgs.unstable.python3Packages.httpcore;
-	  pproxy = pkgs.python3Packages.pproxy;
-        };
-      };
-
-    config = {
-      default_config = {};
-      device_tracker = [
-        #{
-          #platform = "bluetooth_tracker";
-        #}
-	{ 
-	  platform = "nmap_tracker";
-	  hosts = "192.168.0.222"; # I only need to check my phone..
-	  home_interval = 2;
-        }
-      ];
-      
-      light = [
-        {
-        platform = "switch";
-        name = "Window ceiling light";
-        entity_id = "switch.ceiling_led_pin";
-        }
-        {
-        platform = "switch";
-        name = "Wardrobe ceiling light";
-        entity_id = "switch.wardrobe_light";
-        }
-      ];
-      group = {
-        moritz_lights = {
-          name = "Moritz' Lichter";
-          entities = [
-            "light.window_ceiling_light"
-            "light.moritz"
-            "light.wardrobe_ceiling_light"
-          ];
-        };
-      };
-      input_boolean = {
-        window = {
-          name = "Controls Window";
-          initial = "off";
-        };
-        monitor = {
-          name = "Controls Monitor";
-          initial = "off";
-        };
-      };
-      script = {
-        indoor_pump = {
-          alias = "Water the wardrobe plant for some time";
-          description = "Enable the water pump for some time (in seconds)";
-          sequence = [
-            {
-              service = "switch.turn_on";
-              data = {
-                entity_id = "switch.wardrobe_plant_pump";
-              };
-            }
-            {
-              delay = 15;
-            }
-            {
-              service = "switch.turn_off";
-              data = {
-                entity_id = "switch.wardrobe_plant_pump";
-              };
-            }
-          ];
-        };
-        outdoor_pump = {
-          alias = "Water the tomatoes for some time";
-          description = "Enable the water pump for some time (in seconds)";
-          sequence = [
-            {
-              service = "switch.turn_on";
-              data = {
-                entity_id = "switch.water_pump";
-              };
-            }
-            {
-              delay = 60;
-            }
-            {
-              service = "switch.turn_off";
-              data = {
-                entity_id = "switch.water_pump";
-              };
-            }
-          ];
-        };
-        close_window = {
-          alias = "Close Window";
-          description = "Closes window";
-          sequence = [
-            {
-              service = "input_boolean.turn_off";
-              data = {
-                entity_id = "input_boolean.window";
-              };
-            }
-            {
-              service = "switch.turn_on";
-              data = {
-                entity_id = "switch.window_pin_2";
-              };
-            }
-            {
-              service = "switch.turn_off";
-              data = {
-                entity_id = "switch.window_pin_1";
-              };
-            }
-            {
-              service = "switch.turn_on";
-              data = {
-                entity_id = "switch.window_motor_enabled";
-              };
-            }
-            {
-              delay = 2;
-            }
-            {
-              service = "switch.turn_off";
-              data = {
-                entity_id = "switch.window_pin_2";
-              };
-            }
-            {
-              service = "switch.turn_off";
-              data = {
-                entity_id = "switch.window_motor_enabled";
-              };
-            }
-          ];
-        };
-        open_window = {
-          alias = "Open Window";
-          description = "Opens window";
-          sequence = [
-            {
-              service = "input_boolean.turn_on";
-              data = {
-                entity_id = "input_boolean.window";
-              };
-            }
-            {
-              service = "switch.turn_on";
-              data = {
-                entity_id = "switch.window_pin_1";
-              };
-            }
-            {
-              service = "switch.turn_off";
-              data = {
-                entity_id = "switch.window_pin_2";
-              };
-            }
-            {
-              service = "switch.turn_on";
-              data = {
-                entity_id = "switch.window_motor_enabled";
-              };
-            }
-            {
-              delay = 2;
-            }
-            {
-              service = "switch.turn_off";
-              data = {
-                entity_id = "switch.window_pin_1";
-              };
-            }
-            {
-              service = "switch.turn_off";
-              data = {
-                entity_id = "switch.window_motor_enabled";
-              };
-            }
-          ];
-        };
-        switch_on_monitor = {
-          alias = "Monitor On";
-          description = "Opens window";
-          sequence = [
-            {
-              service = "input_boolean.turn_on";
-              data = {
-                entity_id = "input_boolean.monitor";
-              };
-            }
-            {
-              service = "shell_command.switch_on_monitor";
-            }
-          ];
-        };
-        switch_off_monitor = {
-          alias = "Monitor off";
-          description = "Opens window";
-          sequence = [
-            {
-              service = "input_boolean.turn_off";
-              data = {
-                entity_id = "input_boolean.monitor";
-              };
-            }
-            {
-              service = "shell_command.switch_off_monitor";
-            }
-          ];
-        };
-      };
-      automation = [
-        {
-          id =  "open_window_day";
-          alias =  "Open the window in the evening";
-          trigger =  [
-            {
-              at =  "22:15";
-              platform =  "time";
-            }
-          ];
-          action =  [
-            {
-              service =  "script.open_window";
-            }
-          ];
-        }
-        {
-          id =  "1570373794255";
-          alias =  "Close window in the night before asswhole animal truck";
-          trigger =  [
-            {
-              at =  "4:45";
-              platform =  "time";
-            }
-          ];
-          condition =  {
-            condition =  "time";
-            weekday =  [
-              "mon"
-              "thu"
-            ];
-          };
-          action =  [
-            {
-              service =  "script.close_window";
-            }
-          ];
-        }
-        {
-          id =  "tierspital_noise_close_automation";
-          alias =  "Close window during night when there is noise";
-          trigger =  [
-            {
-              to =  "on";
-              platform =  "state";
-              entity_id = "binary_sensor.outdoor_noise";
-            }
-          ];
-          condition =  {
-            condition =  "time";
-            after = "12:30:00";  # TODO 22
-            before = "9:00:00";
-          };
-          action =  [
-            {
-              service =  "script.close_window";
-            }
-          ];
-        }
-        {
-          id =  "tierspital_noise_open_automation";
-          alias =  "Open window during night when there is no more noise";
-          trigger =  [
-            {
-              to =  "off";
-              platform =  "state";
-              entity_id = "binary_sensor.outdoor_noise";
-            }
-          ];
-          condition =  {
-            condition =  "time";
-            after = "12:30:00";  # TODO 22
-            before = "9:00:00";
-          };
-          action =  [
-            {
-              service =  "script.open_window";
-            }
-          ];
-        }
-        {
-          id =  "tierspital_window_close_automation";
-          alias =  "Close window in the night before asswhole tierspital starts making noise";
-          trigger =  [
-            {
-              at =  "5:35";
-              platform =  "time";
-            }
-          ];
-          condition =  {
-            condition =  "time";
-            weekday =  [
-              "tue"
-              "wed"
-              "fri"
-            ];
-          };
-          action =  [
-            {
-              service =  "script.close_window";
-            }
-          ];
-        }
-        {
-          id =  "church_window_close_automation";
-          alias =  "Close window in the night before asswhole church starts making noise";
-          trigger =  [
-            {
-              at =  "8:30";
-              platform =  "time";
-            }
-          ];
-          condition =  {
-            condition =  "time";
-            weekday =  [
-              "sun"
-              "sat"
-            ];
-          };
-          action =  [
-            {
-              service =  "script.close_window";
-            }
-          ];
-        }
-        {
-          id =  "leave_lights_off";
-          alias =  "Turn off light when I leave";
-          trigger =  {
-            platform =  "state";
-            entity_id =  "person.moritz";
-            to =  "not_home";
-          };
-          action =  [
-            {
-              service =  "light.turn_off";
-              entity_id =  "group.moritz_lights";
-            }
-          ];
-        }
-        {
-          id =  "home_lights_on";
-          alias =  "Turn on light when I come home";
-          trigger =  {
-            platform =  "state";
-            entity_id =  "person.moritz";
-            to =  "home";
-          };
-          action =  [
-            {
-              service =  "light.turn_on";
-              entity_id =  "group.moritz_lights";
-            }
-          ];
-        }
-        {
-          id = "water_indoor";
-          alias = "Water the wardrobe plant every 4 hours during the day";
-          trigger = {
-            platform = "time_pattern";
-            hours = "/4";
-          };
-          condition = {
-            condition = "time";
-            after = "10:00:00";
-            before = "20:00:00";
-          };
-          action = [
-            {
-              service = "script.indoor_pump";
-            }
-          ];
-        }
-        {
-          id = "water_tomatoes";
-          alias = "Water the plants every hour during the day";
-          trigger = {
-            platform = "time_pattern";
-            hours = "/1";
-          };
-          condition = {
-            condition = "time";
-            after = "10:00:00";
-            before = "21:00:00";
-          };
-          action = [
-            {
-              service = "script.outdoor_pump";
-            }
-          ];
-        }
-        {
-          id =  "rhasspy_light_onoff";
-          alias =  "Voice controlled light";
-          trigger =  {
-            platform =  "event";
-            event_type =  "rhasspy_ChangeLightState";
-          };
-          action =  {
-            service_template =  "light.turn_{{ trigger.event.data[\"state\"] }}\n";
-            data_template =  {
-              entity_id =  "{{ trigger.event.data[\"name\"] }}";
-            };
-          };
-        }
-        {
-          id =  "rhasspy_window_open";
-          alias =  "Voice controlled window open";
-          trigger =  {
-            platform =  "event";
-            event_type =  "rhasspy_OpenWindow";
-          };
-          action =  [
-            {
-              service =  "script.open_window";
-            }
-          ];
-        }
-        {
-          id =  "rhasspy_window_close";
-          alias =  "Voice controlled window close";
-          trigger =  {
-            platform =  "event";
-            event_type =  "rhasspy_CloseWindow";
-          };
-          action =  [
-            {
-              service =  "script.close_window";
-            }
-          ];
-        }
-      ];
-
-
-      switch = [{
-        platform = "rpi_gpio";
-        ports = {
-          # "18" = "window_motor_enabled";
-          # "15" = "window_pin_1";
-          # "14" = "window_pin_2";
-          # "23" = "ceiling_led_pin";
-        };
-      } {
-        platform = "template";
-        switches = {
-          window = {
-            friendly_name = "Window";
-            value_template = "{{ is_state(\"input_boolean.window\", \"on\") }}";
-            turn_on =
-              {service = "script.open_window";};
-            turn_off =
-              {service = "script.close_window";};
-            };
-          monitor = {
-            friendly_name = "Monitor";
-            value_template = "{{ is_state(\"input_boolean.monitor\", \"on\") }}";
-            turn_on =
-              {service = "script.switch_on_monitor";};
-            turn_off =
-              {service = "script.switch_off_monitor";};
-          };
-        };
-      }];
-      ffmpeg = {
-        # ffmpeg_bin = "/run/current-system/sw/bin/ffmpeg";
-      };
-      binary_sensor = [{
-        platform = "ffmpeg_noise";
-        initial_state = true;
-        input = "-f alsa -i plughw:2 -sample_rate 44100";
-        peak = -32;
-        duration = 1;
-        reset = 150;
-      }];
-
-      homeassistant = {
-        name = "Home";
-        time_zone = "Europe/Zurich"; 
-        latitude = 47.401092299999995; 
-        longitude = 8.5537682;
-        elevation = 473;
-        unit_system = "metric";
-        temperature_unit = "C";
-      };
-      # Enable the frontend
-      frontend = {};
-      http = {};
-      config = {};
-      discovery = {
-        ignore = [ ];
-      };
-      logger = {
-        default = "warning";
-        logs = {
-          pydeconz = "debug";
-          "homeassistant.components.deconz" = "debug";
-        };
-      };
-    };
+    withNpmAndGcc = true;
   };
+
   time.timeZone = "Europe/Zurich";
   services.localtime.enable = true;
 

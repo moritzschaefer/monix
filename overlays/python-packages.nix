@@ -2,9 +2,9 @@ let
   myPythonOverride = {
     packageOverrides = self: super: rec {
       pydeconz = self.callPackage ./pydeconz.nix {};
-      rpi-gpio = self.callPackage ./rpi-gpio.nix {};
-      python-nmap = self.callPackage ./python-nmap.nix {};
-      pyflakes = self.callPackage ./pyflakes.nix {};
+      # rpi-gpio = self.callPackage ./rpi-gpio.nix {};
+      # python-nmap = self.callPackage ./python-nmap.nix {};
+      # pyflakes = self.callPackage ./pyflakes.nix {};
       # uvloop = self.callPackage ./uvloop.nix {};
       uvicorn = super.uvicorn.overrideAttrs (oldAttrs: {
         propagatedBuildInputs = oldAttrs.propagatedBuildInputs ++ [ self.setuptools ];
