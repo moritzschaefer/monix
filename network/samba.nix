@@ -18,5 +18,12 @@
       guest account = nobody
       map to guest = bad user
     '';
+    #shares = {
+      #nas = {
+        #"path" = "/mnt/sdd2tb";
+        #"guest ok" = "yes";
+        #"read only" = "no";
+      #};
+    #};
   };
 }

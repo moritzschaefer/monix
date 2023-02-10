@@ -9,16 +9,16 @@
     [ # Include the results of the hardware scan.
       # <nixos-hardware/raspberry-pi/4>  # maybe needed for sound? also see hardware.raspberry-pi."4" ... below
       ./hardware-configuration.nix
-      ./docker/deconz.nix  # deconz for home-assistant
+      # ./docker/deconz.nix  # deconz for home-assistant
       # ./docker/cloudmacs.nix
-      ./docker/pihole.nix
-      ./docker/rhasspy.nix
-      ./homeassistant/default.nix
-      ./network/samba.nix
+      # ./docker/pihole.nix
+      # ./docker/rhasspy.nix
+      # ./homeassistant/default.nix
+      # ./network/samba.nix
       ./borg.nix
       # ./plex.nix
-      ./kodi.nix
-      ./nature_filter/service.nix
+      # ./kodi.nix
+      # ./nature_filter/service.nix  # enabled below
     ];
   nixpkgs.config.allowUnfree = true;
 
@@ -50,7 +50,7 @@
         #};
       };
 
-  nixpkgs.overlays = [ (import ./overlays/python-packages.nix) ];
+  nixpkgs.overlays = [  ]; # import ./overlays/python-packages.nix) ];
   hardware.enableRedistributableFirmware = true;
 
   
@@ -172,7 +172,8 @@ hdmi_mode:0=100'';
     }
   ); 
 
-  mypython =  python3.withPackages (python-packages: [ python-packages.rpi-gpio python-packages.fritzconnection]);
+  # python-packages.rpi-gpio 
+  mypython =  python3.withPackages (python-packages: [ python-packages.fritzconnection]);
   in [
     arp-scan nmap wget emacs tmux curl htop git myneovim mypython conda
     ffmpeg
@@ -180,7 +181,7 @@ hdmi_mode:0=100'';
     usbutils pciutils libraspberrypi 
     wireguard-tools
     ncdu
-    gst_all_1.gstreamer gst_all_1.gst-plugins-base gst_all_1.gst-plugins-good gst_all_1.gst-plugins-ugly  gst_all_1.gst-plugins-bad
+    gst_all_1.gstreamer gst_all_1.gst-plugins-base gst_all_1.gst-plugins-good gst_all_1.gst-plugins-ugly
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -257,9 +258,9 @@ hdmi_mode:0=100'';
     passwordFile = "/root/duckdns_password";
   };
 
-  services.nature_filter = {
-   enable = true; # feedly fucks
-  };
+  # services.nature_filter = {
+   # enable = true; # feedly fucks
+  # };
 
 
   # FTP server
@@ -308,9 +309,6 @@ hdmi_mode:0=100'';
     extraGroups = [ "wheel" "networkmanager" "dialout" "docker" "gpio" "audio" ];
     openssh.authorizedKeys.keys = [ "" ];
   };
-  users.users.hass = {
-    extraGroups = [ "gpio" "dialout" "audio" ];
-  };
   virtualisation.docker.enable = true;
 
   # List services that you want to enable:
@@ -329,11 +327,11 @@ hdmi_mode:0=100'';
 
   # Enable sound.
   sound.enable = true;
-  hardware.pulseaudio = {
-    enable = true;
-    package = pkgs.pulseaudioFull;
-  };
-  nixpkgs.config.pulseaudio = true;
+  # hardware.pulseaudio = {
+    # enable = true;
+    # package = pkgs.pulseaudioFull;
+  # };
+  # nixpkgs.config.pulseaudio = true;
 
 
   sound.extraConfig = (builtins.readFile ./asound.conf);  # combine microphones..
