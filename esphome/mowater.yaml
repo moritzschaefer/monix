@@ -24,7 +24,6 @@ uart:
   tx_pin: GPIO1
   baud_rate: 9600
 
-sensor:
 captive_portal:
 
 # Enable logging
