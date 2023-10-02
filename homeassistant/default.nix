@@ -1,9 +1,6 @@
 { lib, config, pkgs, options, ... }:
 
 {
-  users.users.hass = {
-    extraGroups = [ "gpio" "dialout" "audio" ];
-  };
   services.postgresql = {
     enable = true;
     ensureDatabases = [ "hass" ];
@@ -24,8 +21,7 @@
     # config.http.server_port = 8123;
     openFirewall = true;
     package = (pkgs.home-assistant.overrideAttrs (oldAttrs: { doInstallCheck=false; doCheck=false; checkPhase=""; dontUsePytestCheck=true; dontUseSetuptoolsCheck=true;})).override {
-    # rpi-gpio pydeconz python-nmap
-        extraPackages = ps: with ps; [ colorlog defusedxml aioesphomeapi PyChromecast pyipp pymetno brother pkgs.ffmpeg ha-ffmpeg psycopg2 ];
+        extraPackages = ps: with ps; [ colorlog rpi-gpio pydeconz defusedxml aioesphomeapi PyChromecast python-nmap pkgs.nmap pyipp pymetno brother pkgs.ffmpeg ha-ffmpeg psycopg2 ];
         packageOverrides = self: super: {
           pydeconz = pkgs.python3Packages.pydeconz;
           rpi-gpio = pkgs.python3Packages.rpi-gpio;
