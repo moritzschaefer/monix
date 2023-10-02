@@ -4,7 +4,7 @@ esphome:
   board: nodemcuv2
 
 wifi:
-  ssid: "Monet"
+  ssid: "NotANetwork"
   password: !secret wifi_password
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
@@ -13,27 +13,21 @@ wifi:
     password: "VynwNZN3glml"
   manual_ip:
     # Set this to the IP of the ESP
-    static_ip: 192.168.0.13
+    static_ip: 192.168.0.171
     # Set this to the IP address of the router. Often ends with .1
     gateway: 192.168.0.1
     # The subnet of the network. 255.255.255.0 works for most home networks.
     subnet: 255.255.255.0
 
 uart:
-  id: mhz19_uart
-  rx_pin: GPIO13
-  tx_pin: GPIO15
-  # rx_pin: GPIO3
-  # tx_pin: GPIO1
+  rx_pin: GPIO3
+  tx_pin: GPIO1
   baud_rate: 9600
-  debug:
 
 captive_portal:
 
 # Enable logging
 logger:
-# Disable UART Logging
-  baud_rate: 0
 
 # Enable Home Assistant API
 api:
@@ -83,6 +77,5 @@ sensor:
       name: "MH-Z19 CO2 Value"
     temperature:
       name: "MH-Z19 Temperature"
-    update_interval: 10s
+    update_interval: 60s
     automatic_baseline_calibration: false
-    uart_id: mhz19_uart
